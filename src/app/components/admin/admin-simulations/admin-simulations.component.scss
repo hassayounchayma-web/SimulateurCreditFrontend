@@ -1,0 +1,49 @@
+.sub {
+  color: #6b7280;
+}
+
+.error {
+  color: #c62828;
+}
+
+.item {
+  margin-bottom: 12px;
+  padding: 14px 16px;
+
+  .row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+  }
+
+  h3 {
+    margin: 0 0 4px;
+    font-size: 16px;
+  }
+
+  p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 13px;
+  }
+
+  .metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 8px;
+    font-size: 13px;
+  }
+}
+
+.block {
+  margin-top: 12px;
+  padding: 16px;
+
+  pre {
+    margin: 0;
+    white-space: pre-wrap;
+    font-size: 12px;
+  }
+}

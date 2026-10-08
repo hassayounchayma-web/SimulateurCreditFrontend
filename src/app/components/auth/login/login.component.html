@@ -1,0 +1,47 @@
+<!-- src/app/components/auth/login/login.component.html -->
+<div class="login-container">
+  <div class="login-card">
+    <h2>Connexion</h2>
+    <p>Connectez-vous à votre espace</p>
+
+    <form (ngSubmit)="onLogin()">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Email ou CIN</mat-label>
+        <input matInput
+               [(ngModel)]="username"
+               name="username"
+               autocomplete="username"
+               required>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Mot de passe</mat-label>
+        <input matInput
+               [type]="hidePassword ? 'password' : 'text'"
+               [(ngModel)]="password"
+               name="password"
+               autocomplete="current-password"
+               required>
+        <mat-icon matSuffix (click)="hidePassword = !hidePassword">
+          {{ hidePassword ? 'visibility_off' : 'visibility' }}
+        </mat-icon>
+      </mat-form-field>
+
+      <div *ngIf="errorMessage" class="error-message">
+        {{ errorMessage }}
+      </div>
+
+      <button mat-raised-button
+              color="primary"
+              type="submit"
+              [disabled]="isLoading">
+        {{ isLoading ? 'Connexion...' : 'Se connecter' }}
+      </button>
+
+      <p>
+        Pas encore de compte ?
+        <a routerLink="/register">Créer un compte</a>
+      </p>
+    </form>
+  </div>
+</div>

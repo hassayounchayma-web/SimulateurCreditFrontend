@@ -1,0 +1,45 @@
+<div class="page-container">
+
+  <div class="page-header">
+    <div class="header-content">
+      <div class="title-section">
+        <h1>Simulateurs Internes</h1>
+        <p>Crédits BNA – Sans rachat, rachat interne ou rachat externe</p>
+      </div>
+      <div class="header-badge">
+        <mat-icon>account_balance</mat-icon>
+        <span>3 simulateurs</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="category-info">
+    <div class="info-chip"><mat-icon>credit_card_off</mat-icon> Sans rachat</div>
+    <div class="info-chip"><mat-icon>swap_horiz</mat-icon> Rachat interne</div>
+    <div class="info-chip"><mat-icon>sync_alt</mat-icon> Rachat externe</div>
+    <div class="info-chip"><mat-icon>calculate</mat-icon> Calculs automatiques</div>
+  </div>
+
+  <div class="simulators-grid">
+    <mat-card *ngFor="let sim of simulateurs" class="simulator-card" [routerLink]="sim.route">
+      <div class="card-top-bar" [style.background]="sim.color"></div>
+      <div class="card-body">
+        <div class="icon-wrapper" [style.background]="sim.color + '15'">
+          <mat-icon [style.color]="sim.color">{{ sim.icon }}</mat-icon>
+        </div>
+        <div class="card-info">
+          <div class="badge" [style.background]="sim.color">{{ sim.badge }}</div>
+          <h2>{{ sim.title }}</h2>
+          <p>{{ sim.description }}</p>
+        </div>
+      </div>
+      <div class="card-footer">
+        <button mat-button [style.color]="sim.color" [routerLink]="sim.route">
+          Accéder au simulateur
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
+      </div>
+    </mat-card>
+  </div>
+
+</div>

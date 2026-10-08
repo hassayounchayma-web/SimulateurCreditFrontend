@@ -1,0 +1,27 @@
+<h1>Tableau de bord</h1>
+<p class="sub">Vue d’ensemble de la plateforme de simulation.</p>
+
+<div *ngIf="loading">Chargement…</div>
+<div class="error" *ngIf="error">{{ error }}</div>
+
+<div class="cards" *ngIf="stats && !loading">
+  <mat-card>
+    <mat-icon>group</mat-icon>
+    <span>Utilisateurs</span>
+    <strong>{{ stats.totalUsers }}</strong>
+  </mat-card>
+
+  <mat-card>
+    <mat-icon>analytics</mat-icon>
+    <span>Simulations</span>
+    <strong>{{ stats.totalSimulations }}</strong>
+  </mat-card>
+</div>
+
+<mat-card class="types" *ngIf="stats && !loading && typeEntries().length">
+  <h3>Par type de scénario</h3>
+  <div class="row" *ngFor="let t of typeEntries()">
+    <span>{{ t.key }}</span>
+    <b>{{ t.value }}</b>
+  </div>
+</mat-card>

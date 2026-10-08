@@ -1,0 +1,44 @@
+<h1>Simulations</h1>
+<p class="sub">Toutes les simulations enregistrées par les clients.</p>
+
+<div *ngIf="loading">Chargement…</div>
+<div class="error" *ngIf="error">{{ error }}</div>
+
+<!-- LISTE -->
+<div *ngIf="!detail && !loading">
+  <div class="empty" *ngIf="!items.length">Aucune simulation.</div>
+
+  <mat-card class="item" *ngFor="let s of items">
+    <div class="row">
+      <div class="info">
+        <h3>{{ s.libelle || s.typeSimulateur }}</h3>
+        <p>
+          User #{{ s.userId }} · {{ s.typeSimulateur }}
+          <span *ngIf="s.createdAt"> · {{ s.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+        </p>
+        <div class="metrics">
+          <span *ngIf="s.montantDemande != null">Demandé : <b>{{ s.montantDemande | number:'1.0-0' }} DT</b></span>
+          <span *ngIf="s.montantMax != null">Max : <b>{{ s.montantMax | number:'1.0-0' }} DT</b></span>
+          <span *ngIf="s.mensualite != null">Mens. : <b>{{ s.mensualite | number:'1.2-2' }} DT</b></span>
+        </div>
+      </div>
+      <button mat-stroked-button type="button" (click)="openDetail(s)">Détail</button>
+    </div>
+  </mat-card>
+</div>
+
+<!-- DÉTAIL -->
+<div *ngIf="detail">
+  <button mat-button type="button" (click)="closeDetail()">← Retour</button>
+  <h2>{{ detail.libelle }}</h2>
+  <p class="sub">User #{{ detail.userId }} · {{ detail.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
+
+  <mat-card class="block" *ngIf="detailInputs">
+    <h3>Entrées</h3>
+    <pre>{{ detailInputs | json }}</pre>
+  </mat-card>
+  <mat-card class="block" *ngIf="detailResult">
+    <h3>Résultats</h3>
+    <pre>{{ detailResult | json }}</pre>
+  </mat-card>
+</div>

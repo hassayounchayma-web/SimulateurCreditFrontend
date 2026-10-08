@@ -1,0 +1,88 @@
+<!-- src/app/shared/components/resultats-card/resultats-card.html -->
+<div class="resultats-container" *ngIf="result && !loading">
+
+  <!-- En-tête -->
+  <div class="resultats-header">
+    <div class="header-content">
+      <div class="header-icon">
+        <mat-icon>analytics</mat-icon>
+      </div>
+      <div class="header-text">
+        <h2 class="header-title">Résultats de la Simulation</h2>
+        <p class="header-subtitle">{{ simulatorType || 'Personnalisée' }}</p>
+      </div>
+    </div>
+    <div class="header-badge" [style.background]="getEndettementColor()">
+      <span class="badge-text">{{ getEndettementLabel() }}</span>
+    </div>
+  </div>
+
+  <!-- Erreur -->
+  <div *ngIf="result?.error" class="error-message">
+    <mat-icon>error_outline</mat-icon>
+    <span>{{ result.error }}</span>
+  </div>
+
+  <!-- Résultats -->
+  <div *ngIf="!result?.error" class="resultats-body">
+
+    <!-- Données saisies -->
+    <div class="section">
+      <div class="section-header">
+        <mat-icon>edit_note</mat-icon>
+        <h3 class="section-title">Données saisies</h3>
+      </div>
+      <div class="section-content">
+        <!-- ✅ Utilisation de userInputEntries préparé dans le TS -->
+        <div class="result-row" *ngFor="let item of userInputEntries">
+          <span class="row-label">{{ getFormattedKey(item.key) }}</span>
+          <span class="row-value">{{ getFormattedValue(item.key, item.value) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <!-- Résultats calculés -->
+    <div class="section">
+      <div class="section-header">
+        <mat-icon>calculate</mat-icon>
+        <h3 class="section-title">Résultats calculés</h3>
+      </div>
+      <div class="section-content">
+        <div *ngFor="let item of getResultEntries()" class="result-row">
+          <span class="row-label">
+            <mat-icon class="row-icon">{{ getIcon(item.key) }}</mat-icon>
+            {{ getFormattedKey(item.key) }}
+          </span>
+          <span class="row-value"
+                [class.highlight]="isCurrency(item.key)"
+                [style.color]="isPercentage(item.key) ? getEndettementColor() : '#1a1a2e'">
+            {{ getFormattedValue(item.key, item.value) }}
+            <span *ngIf="isPercentage(item.key)" class="percentage-bar">
+              <span class="bar" [style.width.%]="item.value" [style.background]="getEndettementColor()"></span>
+            </span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions-container">
+      <button mat-raised-button class="btn-pdf" (click)="generatePDF()">
+        <mat-icon>picture_as_pdf</mat-icon>
+        Exporter en PDF
+      </button>
+      <button mat-stroked-button class="btn-copy" (click)="copyToClipboard()">
+        <mat-icon>content_copy</mat-icon>
+        Copier
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Chargement -->
+<div *ngIf="loading" class="loading-container">
+  <mat-spinner diameter="48"></mat-spinner>
+  <p>Calcul en cours...</p>
+</div>

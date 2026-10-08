@@ -1,0 +1,16 @@
+<div class="admin-shell">
+  <mat-toolbar class="admin-bar">
+    <span class="brand">BNA Admin</span>
+    <a mat-button routerLink="/admin/dashboard" routerLinkActive="active">Dashboard</a>
+    <a mat-button routerLink="/admin/users" routerLinkActive="active">Utilisateurs</a>
+    <a mat-button routerLink="/admin/simulations" routerLinkActive="active">Simulations</a>
+    <span class="spacer"></span>
+    <button mat-button type="button" (click)="logout()">
+      <mat-icon>logout</mat-icon> Déconnexion
+    </button>
+  </mat-toolbar>
+
+  <main class="admin-content">
+    <router-outlet></router-outlet>
+  </main>
+</div>

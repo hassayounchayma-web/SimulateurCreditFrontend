@@ -1,0 +1,99 @@
+<div class="sim-page">
+  <div class="sim-header">
+    <div class="sim-header-content">
+      <div>
+        <h1>Simulation Rachat Externe</h1>
+        <p>Rachetez un crédit concurrent et obturez un nouveau financement BNA</p>
+      </div>
+      <div class="sim-badge" [style.background]="accentColor">
+        <mat-icon>sync_alt</mat-icon>
+        <span>Simulateur</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-panel">
+    <div class="info-header">
+      <mat-icon>lightbulb</mat-icon>
+      <span>Ce qu’il faut savoir</span>
+    </div>
+    <div class="info-grid">
+      <div class="info-item" *ngFor="let p of pointsCles">
+        <div class="info-icon" [style.background]="accentColor + '18'">
+          <mat-icon [style.color]="accentColor">{{ p.icon }}</mat-icon>
+        </div>
+        <div class="info-text">
+          <strong>{{ p.title }}</strong>
+          <p>{{ p.desc }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sim-content">
+    <mat-card class="sim-card">
+      <div class="card-accent" [style.background]="accentColor"></div>
+      <mat-card-header>
+        <mat-card-title>Données de simulation</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Salaire mensuel moyen (DT) *</mat-label>
+            <input matInput type="number" formControlName="salaireMensuelMoyen">
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>50% des loyers perçus (DT)</mat-label>
+            <input matInput type="number" formControlName="cinquantePourcentLoyers">
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Retenues SED non rachetées (DT)</mat-label>
+            <input matInput type="number" formControlName="retenuesSedNonRachete">
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Capital restant externe à racheter (DT) *</mat-label>
+            <input matInput type="number" formControlName="capitalRestantExterneARacheter">
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Type de crédit *</mat-label>
+            <mat-select formControlName="typeCredit">
+              <mat-option *ngFor="let type of typesCredit" [value]="type">{{ type }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Durée du nouveau crédit (mois) *</mat-label>
+            <input matInput type="number" formControlName="dureeMois">
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Montant crédit demandé (DT) *</mat-label>
+            <input matInput type="number" formControlName="montantCreditDemande">
+          </mat-form-field>
+
+          <div class="actions">
+            <button mat-raised-button color="primary" type="submit" [disabled]="loading">
+              <mat-icon>calculate</mat-icon> Simuler
+            </button>
+            <button mat-stroked-button type="button" (click)="resetForm()">Réinitialiser</button>
+          </div>
+          <p *ngIf="error" class="error-message">{{ error }}</p>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="sim-card" *ngIf="loading || resultData">
+      <div class="card-accent" [style.background]="accentColor"></div>
+      <mat-card-header>
+        <mat-card-title>Résultats</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div *ngIf="loading" class="loading"><mat-spinner diameter="40"></mat-spinner></div>
+        <app-resultats-card *ngIf="resultData && !loading"
+                            [result]="resultData"
+                            [loading]="loading"
+                            [simulatorType]="'Rachat Externe'"
+                            [userInputData]="form.value">
+        </app-resultats-card>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

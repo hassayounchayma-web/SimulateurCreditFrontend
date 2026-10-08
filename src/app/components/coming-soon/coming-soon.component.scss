@@ -1,0 +1,39 @@
+// src/app/components/coming-soon/coming-soon.component.scss
+.coming-soon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 20px;
+}
+
+.content {
+  text-align: center;
+  max-width: 500px;
+
+  .icon {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+    color: #94a3b8;
+    margin-bottom: 20px;
+  }
+
+  h2 {
+    color: #1a1a2e;
+    font-size: 1.5rem;
+    margin-bottom: 8px;
+  }
+
+  p {
+    color: #64748b;
+    font-size: 1rem;
+    margin-bottom: 24px;
+  }
+
+  button {
+    mat-icon {
+      margin-right: 8px;
+    }
+  }
+}

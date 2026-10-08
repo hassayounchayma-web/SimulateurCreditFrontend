@@ -1,0 +1,30 @@
+<div class="hub">
+  <header class="hub-header">
+    <h1>Bonjour, {{ prenom }}</h1>
+    <p>
+      Simulez votre crédit selon votre situation — parcours guidé et barèmes métier.
+    </p>
+  </header>
+
+  <div class="hub-grid">
+    <mat-card class="hub-card primary"
+              routerLink="/dashboard/simulation"
+              (click)="startSimulation()">
+      <div class="icon-wrap">
+        <mat-icon>rocket_launch</mat-icon>
+      </div>
+      <mat-card-title>Nouvelle simulation</mat-card-title>
+      <mat-card-subtitle>Parcours guidé en plusieurs étapes</mat-card-subtitle>
+      <button mat-flat-button class="btn-main" type="button">Démarrer</button>
+    </mat-card>
+
+    <mat-card class="hub-card" routerLink="/dashboard/historique">
+      <div class="icon-wrap muted">
+        <mat-icon>history</mat-icon>
+      </div>
+      <mat-card-title>Historique</mat-card-title>
+      <mat-card-subtitle>Retrouver vos simulations enregistrées</mat-card-subtitle>
+      <button mat-stroked-button type="button">Voir</button>
+    </mat-card>
+  </div>
+</div>

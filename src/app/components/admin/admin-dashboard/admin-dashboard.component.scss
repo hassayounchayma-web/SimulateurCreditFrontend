@@ -1,0 +1,54 @@
+h1 {
+  margin: 0 0 4px;
+}
+
+.sub {
+  color: #6b7280;
+  margin-bottom: 20px;
+}
+
+.error {
+  color: #c62828;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+
+  mat-card {
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    mat-icon {
+      color: #008037;
+    }
+
+    span {
+      color: #6b7280;
+      font-size: 13px;
+    }
+
+    strong {
+      font-size: 28px;
+    }
+  }
+}
+
+.types {
+  padding: 18px;
+
+  h3 {
+    margin-top: 0;
+  }
+
+  .row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+  }
+}

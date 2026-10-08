@@ -1,0 +1,41 @@
+<mat-toolbar class="nav">
+  <a routerLink="/dashboard/hub" class="brand">
+    <span class="logo">BNA</span>
+    <span class="brand-text">Simulation Crédit</span>
+  </a>
+
+  <!-- ====== ex-sidebar ====== -->
+  <nav class="links">
+    <a routerLink="/dashboard/hub" routerLinkActive="active">
+      Tableau de bord
+    </a>
+
+    <a routerLink="/dashboard/simulation" routerLinkActive="active">
+      Simulation guidée
+    </a>
+
+   
+
+    <a routerLink="/dashboard/historique" routerLinkActive="active">
+      Historique
+    </a>
+
+   
+  </nav>
+  <!-- ====== fin ex-sidebar ====== -->
+
+  <span class="spacer"></span>
+
+  <button mat-button [matMenuTriggerFor]="userMenu" class="user-btn">
+    <mat-icon>account_circle</mat-icon>
+    <span class="user-label">{{ userName }}</span>
+    <mat-icon>arrow_drop_down</mat-icon>
+  </button>
+
+  <mat-menu #userMenu="matMenu">
+    <button mat-menu-item (click)="onLogout()">
+      <mat-icon>logout</mat-icon>
+      <span>Déconnexion</span>
+    </button>
+  </mat-menu>
+</mat-toolbar>

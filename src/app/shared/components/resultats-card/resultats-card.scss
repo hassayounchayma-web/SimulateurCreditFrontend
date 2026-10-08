@@ -1,0 +1,414 @@
+// src/app/shared/components/resultats-card/resultats-card.scss
+
+// Variables BNA
+$bna-green: #008037;
+$bna-green-dark: #006028;
+$bna-green-light: #e8f5e9;
+$bna-grey: #64748b;
+$bna-grey-light: #f1f5f9;
+$bna-black: #1a1a2e;
+$bna-white: #ffffff;
+
+.resultats-container {
+  max-width: 850px;
+  margin: 24px auto;
+  background: $bna-white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  border: 1px solid rgba(0, 128, 55, 0.1);
+}
+
+// ========================================
+// HEADER
+// ========================================
+.resultats-header {
+  background: linear-gradient(135deg, $bna-green 0%, $bna-green-dark 100%);
+  padding: 24px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .header-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .header-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+
+      mat-icon {
+        color: $bna-white;
+        font-size: 28px;
+        width: 28px;
+        height: 28px;
+      }
+    }
+
+    .header-text {
+      .header-title {
+        color: $bna-white;
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin: 0;
+        letter-spacing: -0.3px;
+      }
+
+      .header-subtitle {
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 0.95rem;
+        font-weight: 400;
+        margin: 2px 0 0 0;
+      }
+    }
+  }
+
+  .header-badge {
+    padding: 6px 16px;
+    border-radius: 50px;
+    color: $bna-white;
+    font-weight: 600;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+
+    .badge-text {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      &::before {
+        content: '●';
+        font-size: 8px;
+        opacity: 0.7;
+      }
+    }
+  }
+}
+
+// ========================================
+// BODY
+// ========================================
+.resultats-body {
+  padding: 24px 32px 32px;
+}
+
+// Section
+.section {
+  margin-bottom: 20px;
+
+  &:last-of-type {
+    margin-bottom: 0;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+
+    mat-icon {
+      color: $bna-green;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    .section-title {
+      color: $bna-black;
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0;
+      letter-spacing: -0.2px;
+    }
+  }
+
+  .section-content {
+    background: $bna-grey-light;
+    border-radius: 12px;
+    padding: 4px 0;
+  }
+}
+
+// Ligne de résultat
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  .row-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: $bna-grey;
+    font-size: 0.9rem;
+    font-weight: 500;
+
+    .row-icon {
+      color: $bna-grey;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      opacity: 0.7;
+    }
+  }
+
+  .row-value {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: $bna-black;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-align: right;
+
+    &.highlight {
+      color: $bna-green;
+      font-size: 1.05rem;
+    }
+
+    .percentage-bar {
+      display: inline-flex;
+      align-items: center;
+      width: 60px;
+      height: 6px;
+      background: rgba(0, 0, 0, 0.08);
+      border-radius: 4px;
+      overflow: hidden;
+      flex-shrink: 0;
+
+      .bar {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.6s ease;
+      }
+    }
+  }
+}
+
+// Divider
+mat-divider {
+  margin: 16px 0;
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+// ========================================
+// ACTIONS
+// ========================================
+.actions-container {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+
+  .btn-pdf {
+    background: $bna-green !important;
+    color: $bna-white !important;
+    padding: 8px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &:hover {
+      background: $bna-green-dark !important;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 128, 55, 0.3);
+    }
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  .btn-copy {
+    border-color: $bna-grey !important;
+    color: $bna-grey !important;
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.04);
+      border-color: $bna-black !important;
+      color: $bna-black !important;
+    }
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
+// ========================================
+// ERREUR
+// ========================================
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  background: #fde8e8;
+  color: #d32f2f;
+  border-radius: 12px;
+  margin: 16px 32px;
+
+  mat-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  span {
+    font-weight: 500;
+    font-size: 0.95rem;
+  }
+}
+
+// ========================================
+// LOADING
+// ========================================
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 16px;
+  background: $bna-white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+  p {
+    color: $bna-grey;
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin: 0;
+  }
+}
+
+// ========================================
+// RESPONSIVE
+// ========================================
+@media (max-width: 768px) {
+  .resultats-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 20px;
+
+    .header-content {
+      .header-icon {
+        width: 40px;
+        height: 40px;
+
+        mat-icon {
+          font-size: 22px;
+          width: 22px;
+          height: 22px;
+        }
+      }
+
+      .header-text {
+        .header-title {
+          font-size: 1.1rem;
+        }
+
+        .header-subtitle {
+          font-size: 0.85rem;
+        }
+      }
+    }
+
+    .header-badge {
+      align-self: flex-start;
+    }
+  }
+
+  .resultats-body {
+    padding: 16px;
+  }
+
+  .result-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 10px 16px;
+
+    .row-value {
+      width: 100%;
+      justify-content: flex-start;
+      text-align: left;
+
+      .percentage-bar {
+        width: 100%;
+        max-width: 120px;
+      }
+    }
+  }
+
+  .actions-container {
+    flex-direction: column;
+
+    .btn-pdf,
+    .btn-copy {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  .error-message {
+    margin: 12px 16px;
+    padding: 12px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .resultats-header {
+    padding: 16px;
+
+    .header-content {
+      gap: 10px;
+    }
+  }
+
+  .resultats-body {
+    padding: 12px;
+  }
+
+  .section {
+    .section-content {
+      padding: 0;
+    }
+  }
+
+  .result-row {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+
+    .row-value {
+      font-size: 0.85rem;
+    }
+  }
+}

@@ -1,0 +1,134 @@
+<div class="page">
+  <div class="header">
+    <h1>Historique des simulations</h1>
+    <p>Retrouvez vos scénarios et comparez jusqu’à 3 simulations.</p>
+  </div>
+
+  <div class="toolbar" *ngIf="!detail">
+    <button mat-raised-button color="primary"
+            [disabled]="selected.size < 2"
+            (click)="comparer()">
+      <mat-icon>compare</mat-icon>
+      Comparer ({{ selected.size }}/3)
+    </button>
+    <button mat-stroked-button type="button" (click)="reload()">
+      <mat-icon>refresh</mat-icon>
+      Actualiser
+    </button>
+  </div>
+
+  <div *ngIf="error" class="error">{{ error }}</div>
+  <div *ngIf="loading" class="loading">Chargement…</div>
+
+  <!-- LISTE -->
+  <ng-container *ngIf="!detail">
+    <div *ngIf="!loading && items.length === 0" class="empty">
+      Aucune simulation enregistrée pour le moment.
+    </div>
+
+    <div class="list" *ngIf="!loading && items.length">
+      <mat-card *ngFor="let s of items" class="item">
+        <div class="row">
+          <mat-checkbox [checked]="selected.has(s.id)"
+                        (change)="toggle(s.id)">
+          </mat-checkbox>
+
+          <div class="info" (click)="openDetail(s)">
+            <h3>{{ s.libelle || s.typeSimulateur }}</h3>
+            <p>
+              {{ s.typeSimulateur }}
+              <span *ngIf="s.createdAt"> · {{ s.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+            </p>
+            <div class="metrics">
+              <span *ngIf="s.montantDemande != null">
+                Demandé : <b>{{ s.montantDemande | number:'1.0-0' }} DT</b>
+              </span>
+              <span *ngIf="s.montantMax != null">
+                Max : <b>{{ s.montantMax | number:'1.0-0' }} DT</b>
+              </span>
+              <span *ngIf="s.mensualite != null">
+                Mensualité : <b>{{ s.mensualite | number:'1.2-2' }} DT</b>
+              </span>
+              <span *ngIf="s.dureeMois != null">
+                Durée : <b>{{ s.dureeMois }} mois</b>
+              </span>
+            </div>
+          </div>
+
+          <button mat-button color="primary" type="button" (click)="openDetail(s)">
+            Détail
+          </button>
+          <button mat-icon-button color="warn" type="button" (click)="supprimer(s.id)">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+      </mat-card>
+    </div>
+
+    <mat-card class="compare" *ngIf="compareRows.length">
+      <h2>Comparaison</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Critère</th>
+            <th *ngFor="let c of compareRows">{{ c.libelle }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Montant demandé</td>
+            <td *ngFor="let c of compareRows">{{ c.montantDemande | number:'1.0-0' }} DT</td>
+          </tr>
+          <tr>
+            <td>Montant max</td>
+            <td *ngFor="let c of compareRows">{{ c.montantMax | number:'1.0-0' }} DT</td>
+          </tr>
+          <tr>
+            <td>Mensualité</td>
+            <td *ngFor="let c of compareRows">{{ c.mensualite | number:'1.2-2' }} DT</td>
+          </tr>
+          <tr>
+            <td>Durée</td>
+            <td *ngFor="let c of compareRows">{{ c.dureeMois }} mois</td>
+          </tr>
+          <tr>
+            <td>Taux d’endettement</td>
+            <td *ngFor="let c of compareRows">{{ c.tauxEndettement | number:'1.2-2' }} %</td>
+          </tr>
+        </tbody>
+      </table>
+    </mat-card>
+  </ng-container>
+
+  <!-- DÉTAIL -->
+  <div class="detail" *ngIf="detail">
+    <button mat-button type="button" (click)="closeDetail()">← Retour</button>
+    <h2>{{ detail.libelle }}</h2>
+    <p class="meta">{{ detail.createdAt | date:'dd/MM/yyyy HH:mm' }} · {{ detail.typeSimulateur }}</p>
+
+    <mat-card class="block" *ngIf="detailInputs">
+      <h3>Données saisies</h3>
+      <div class="grid">
+        <div><span>Salaire</span><b>{{ detailInputs.salaireMensuelMoyen | number:'1.2-2' }} DT</b></div>
+        <div><span>Loyers</span><b>{{ detailInputs.loyersDomicilies | number:'1.2-2' }} DT</b></div>
+        <div><span>Revenu net</span><b>{{ detailInputs.revenuNet | number:'1.2-2' }} DT</b></div>
+        <div><span>Produit</span><b>{{ detailInputs.typeCredit }}</b></div>
+        <div><span>Durée</span><b>{{ detailInputs.duree }} mois</b></div>
+        <div><span>Montant demandé</span><b>{{ detailInputs.montantDemande | number:'1.2-2' }} DT</b></div>
+        <div><span>Taux annuel</span><b>{{ detailInputs.tauxAnnuel | number:'1.2-2' }} %</b></div>
+      </div>
+    </mat-card>
+
+    <mat-card class="block" *ngIf="detailResult">
+      <h3>Résultats</h3>
+      <div class="grid">
+        <div class="hl"><span>Montant max</span><b>{{ detailResult.montantMaxCredit | number:'1.2-2' }} DT</b></div>
+        <div class="hl"><span>Mensualité</span><b>{{ detailResult.mensualiteDemande | number:'1.2-2' }} DT</b></div>
+        <div><span>Plafond</span><b>{{ detailResult.plafondEndettement | number:'1.2-2' }} DT</b></div>
+        <div><span>Reliquat capacité</span><b>{{ detailResult.reliquatCapacite | number:'1.2-2' }} DT</b></div>
+        <div><span>Total retenues</span><b>{{ detailResult.totalRetenues | number:'1.2-2' }} DT</b></div>
+        <div *ngIf="detailResult.message" class="full"><span>Message</span><b>{{ detailResult.message }}</b></div>
+      </div>
+    </mat-card>
+  </div>
+</div>

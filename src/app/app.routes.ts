@@ -58,6 +58,13 @@ export const routes: Routes = [
             m => m.HistoriqueComponent
           )
       },
+      {
+        path: 'dossiers',
+        loadComponent: () =>
+          import('./components/dossiers/dossiers.component').then(
+            m => m.DossiersComponent
+          )
+      },
 
       // Anciennes routes (optionnel)
       { path: 'categories', redirectTo: 'hub', pathMatch: 'full' },
@@ -87,13 +94,6 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./components/simulateurs/simulateur-rachat-externe/simulateur-rachat-externe').then(
             m => m.SimulateurRachatExterne
-          )
-      },
-      {
-        path: 'parametres',
-        loadComponent: () =>
-          import('./components/agent/agent-page/agent-page.component').then(
-            m => m.AgentPageComponent
           )
       }
     ]
@@ -129,9 +129,24 @@ export const routes: Routes = [
           import('./components/admin/admin-simulations/admin-simulations.component').then(
             m => m.AdminSimulationsComponent
           )
-      }
+      },
+      {
+        path: 'dossiers',
+        loadComponent: () =>
+          import('./components/admin/admin-dossiers/admin-dossiers.component').then(
+            m => m.AdminDossiersComponent
+          )
+      },
+       {
+         path: 'parametrage',
+        loadComponent: () =>
+          import(
+            './components/admin/parametrage/parametrage-admin.component'
+          ).then(m => m.ParametrageAdminComponent)
+      },
     ]
   },
+ 
 
   { path: '**', redirectTo: '' }
 ];

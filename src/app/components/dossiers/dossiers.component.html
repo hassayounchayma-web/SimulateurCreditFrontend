@@ -1,0 +1,191 @@
+<div class="dossiers-page">
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">Suivi de demande</span>
+      <h1>Mes dossiers de crédit</h1>
+      <p>Ajoutez vos justificatifs après une simulation et consultez la préanalyse OCR.</p>
+    </div>
+    <button mat-stroked-button type="button" (click)="reload()" [disabled]="loading">
+      <mat-icon>refresh</mat-icon>
+      Actualiser
+    </button>
+  </header>
+
+  <div class="notice error" *ngIf="error">
+    <mat-icon>error_outline</mat-icon><span>{{ error }}</span>
+  </div>
+  <div class="notice success" *ngIf="success">
+    <mat-icon>check_circle</mat-icon><span>{{ success }}</span>
+  </div>
+
+  <section class="create-card" *ngIf="simulation">
+    <div class="section-title">
+      <div class="title-icon"><mat-icon>folder_shared</mat-icon></div>
+      <div>
+        <span class="eyebrow">Étape suivante</span>
+        <h2>Constituer un dossier à partir de votre simulation</h2>
+      </div>
+    </div>
+
+    <div class="simulation-summary">
+      <div><span>Simulation</span><strong>{{ simulation.libelle || 'Simulation de crédit' }}</strong></div>
+      <div><span>Montant demandé</span><strong>{{ simulation.simulation?.montantDemande | number:'1.0-0' }} DT</strong></div>
+      <div><span>Durée</span><strong>{{ simulation.simulation?.duree || '—' }} mois</strong></div>
+    </div>
+
+    <ng-container *ngIf="checklist as currentChecklist; else loadingChecklist">
+      <div class="seller-choice" *ngIf="currentChecklist.typeVendeurRequis">
+        <label for="type-vendeur"><strong>Type de vendeur <i>Obligatoire</i></strong></label>
+        <select id="type-vendeur" [(ngModel)]="typeVendeur" (ngModelChange)="onChecklistConditionChanged()">
+          <option [ngValue]="null">Sélectionner le type de vendeur</option>
+          <option value="PROMOTEUR_AGREE">Promoteur agréé (à vérifier par l’administration)</option>
+          <option value="PARTICULIER">Particulier</option>
+        </select>
+      </div>
+
+      <label class="income-toggle">
+        <input type="checkbox" [(ngModel)]="revenusSupplementairesDeclares"
+               (ngModelChange)="onChecklistConditionChanged()">
+        <span>Je déclare des revenus supplémentaires</span>
+      </label>
+
+      <h3 class="checklist-heading">Documents demandés pour ce produit</h3>
+      <div class="documents-grid">
+        <ng-container *ngFor="let item of currentChecklist.documents">
+          <label class="upload-tile" [class.optional]="!item.obligatoire"
+                 [for]="'doc-' + codeId(item.code)"
+                 *ngIf="item.actif && !item.genereAutomatiquement">
+            <mat-icon>description</mat-icon>
+            <strong>{{ item.libelle }} <i>{{ item.obligatoire ? 'Obligatoire' : 'Facultatif' }}</i></strong>
+            <small>{{ item.description }}</small>
+            <span>{{ selectedFileName(item.code) || (item.obligatoire ? 'Choisir un PDF, JPG ou PNG' : 'Ajouter si disponible') }}</span>
+            <input [id]="'doc-' + codeId(item.code)" type="file"
+                   accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                   (change)="onFileSelected(item.code, $event)">
+          </label>
+        </ng-container>
+      </div>
+
+      <section class="alternative-group" *ngFor="let group of currentChecklist.groupesAlternatifs">
+        <strong>{{ group.libelle }} <i>Un seul document suffit</i></strong>
+        <p>Déposez l'un des documents suivants :</p>
+        <div class="documents-grid">
+          <label class="upload-tile" *ngFor="let code of group.documentsAcceptes"
+                 [for]="'doc-' + codeId(code)">
+            <mat-icon>description</mat-icon>
+            <strong>{{ documentLabel(code) }}</strong>
+            <span>{{ selectedFileName(code) || 'Choisir un PDF, JPG ou PNG' }}</span>
+            <input [id]="'doc-' + codeId(code)" type="file"
+                   accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                   (change)="onFileSelected(code, $event)">
+          </label>
+        </div>
+      </section>
+
+      <p class="request-generated" *ngIf="currentChecklist.produitCode === 'P1_DEPENSES'">
+        La demande de crédit est créée avec le dossier et ne nécessite pas de fichier séparé.
+      </p>
+    </ng-container>
+    <ng-template #loadingChecklist><p>Génération de la checklist du produit…</p></ng-template>
+    <p class="file-hint">PDF, JPG ou PNG · 10 Mo maximum par document</p>
+
+    <label class="consent">
+      <input type="checkbox" [(ngModel)]="consent">
+      <span>J’accepte que mes documents soient analysés localement par le microservice OCR PaddleOCR. Je vérifierai les informations extraites.</span>
+    </label>
+
+    <div class="form-actions">
+      <button mat-button type="button" (click)="backToSimulation()">Retour à la simulation</button>
+      <button mat-flat-button color="primary" type="button" (click)="createDossier()"
+              [disabled]="submitting || !consent || !isCompleteToSubmit()">
+        <mat-icon>{{ submitting ? 'hourglass_top' : 'document_scanner' }}</mat-icon>
+        {{ submitting ? 'Analyse des pièces…' : 'Créer et analyser le dossier' }}
+      </button>
+    </div>
+  </section>
+
+  <section class="detail-card" *ngIf="selectedDossier as dossier">
+    <div class="detail-header">
+      <div>
+        <span class="eyebrow">{{ dossier.reference }}</span>
+        <h2>{{ dossier.libelle }}</h2>
+      </div>
+      <span class="status" [ngClass]="dossier.statut.toLowerCase()">{{ statusLabel(dossier.statut) }}</span>
+    </div>
+    <p class="analysis-message">{{ analysis(dossier)?.message || 'Analyse en cours.' }}</p>
+    <button mat-stroked-button type="button" (click)="reanalyzeDossier()" [disabled]="reanalyzing">
+      <mat-icon>refresh</mat-icon>{{ reanalyzing ? 'Analyse en cours…' : 'Relancer PaddleOCR' }}
+    </button>
+    <p class="promoter-note" *ngIf="dossier.typeVendeur === 'PROMOTEUR_AGREE'">
+      Contrôle administratif de l’agrément : {{ dossier.statutVerificationPromoteur || 'À vérifier' }}.
+      {{ dossier.motifVerificationPromoteur || 'La déclaration du type de vendeur ne constitue pas une preuve d’agrément.' }}
+    </p>
+    <section class="saved-checklist" *ngIf="checklistFor(dossier) as savedChecklist">
+      <h3>Checklist du dossier · {{ savedChecklist.produit }}</h3>
+      <div *ngFor="let item of activeChecklistItems(savedChecklist)">
+        <span>{{ item.libelle }}</span><strong>{{ item.statut }}</strong>
+      </div>
+      <p *ngFor="let group of savedChecklist.groupesAlternatifs">
+        {{ group.libelle }} · {{ group.satisfait ? 'satisfait' : 'manquant' }}
+      </p>
+    </section>
+    <div class="analysis-note" *ngIf="analysis(dossier)?.note">
+      <mat-icon>info</mat-icon><span>{{ analysis(dossier)?.note }}</span>
+    </div>
+    <ul class="alerts" *ngIf="analysis(dossier)?.pointsVerification?.length">
+      <li *ngFor="let point of analysis(dossier).pointsVerification"><mat-icon>warning_amber</mat-icon>{{ point }}</li>
+    </ul>
+    <label class="consent replace-consent">
+      <input type="checkbox" [(ngModel)]="consentReplace">
+      <span>Je confirme le traitement OCR si je remplace une pièce.</span>
+    </label>
+    <div class="document-results">
+      <article class="document-result" *ngFor="let doc of documents(dossier)">
+        <div class="document-result-heading">
+          <mat-icon>description</mat-icon>
+          <div><strong>{{ documentLabel(doc.type) }} · version {{ doc.version || 1 }}{{ doc.actif ? ' (actuelle)' : ' (historique)' }}</strong><span>{{ doc.nomFichier }}</span></div>
+          <span class="confidence" *ngIf="doc.ocrDisponible">OCR {{ (doc.confiance * 100) | number:'1.0-0' }} %</span>
+          <span class="confidence warning" *ngIf="!doc.ocrDisponible">Lecture indisponible</span>
+        </div>
+        <div class="document-result-actions" *ngIf="doc.actif">
+          <span>Validation documentaire : {{ doc.statutValidation || 'EN_ATTENTE' }}</span>
+          <label class="replace-file">
+            {{ replacing ? 'Remplacement en cours…' : 'Remplacer cette pièce' }}
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                   [disabled]="replacing" (change)="replaceUploadedDocument(doc, $event)">
+          </label>
+        </div>
+        <dl *ngIf="fieldEntries(doc.champs).length">
+          <div *ngFor="let field of fieldEntries(doc.champs)">
+            <dt>{{ fieldLabel(field.key) }}</dt>
+            <dd>{{ field.value }}<ng-container *ngIf="field.key === 'salaireNet'"> DT</ng-container></dd>
+          </div>
+        </dl>
+        <p class="doc-error" *ngIf="doc.erreur">{{ doc.erreur }}</p>
+        <p class="doc-error" *ngIf="doc.motifAdmin">{{ doc.motifAdmin }}</p>
+        <details class="ocr-text" *ngIf="doc.texteExtrait">
+          <summary>Texte reconnu par PaddleOCR</summary>
+          <pre>{{ doc.texteExtrait }}</pre>
+        </details>
+      </article>
+    </div>
+  </section>
+
+  <section class="list-section">
+    <div class="list-heading"><div><span class="eyebrow">Historique</span><h2>Dossiers déposés</h2></div></div>
+    <div class="empty-state" *ngIf="!loading && dossiers.length === 0">
+      <mat-icon>folder_open</mat-icon>
+      <strong>Aucun dossier pour le moment</strong>
+      <p>Après une simulation, choisissez « Constituer mon dossier » pour ajouter vos justificatifs.</p>
+    </div>
+    <div class="dossier-list" *ngIf="dossiers.length">
+      <button class="dossier-row" type="button" *ngFor="let dossier of dossiers; trackBy: trackById"
+              [class.selected]="selectedDossier?.id === dossier.id" (click)="openDossier(dossier)">
+        <span class="row-icon"><mat-icon>folder</mat-icon></span>
+        <span class="row-main"><strong>{{ dossier.libelle }}</strong><small>{{ dossier.reference }} · {{ dossier.createdAt | date:'dd/MM/yyyy' }}</small></span>
+        <span class="status" [ngClass]="dossier.statut.toLowerCase()">{{ statusLabel(dossier.statut) }}</span>
+        <mat-icon class="row-arrow">chevron_right</mat-icon>
+      </button>
+    </div>
+  </section>
+</div>

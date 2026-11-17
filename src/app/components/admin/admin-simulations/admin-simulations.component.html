@@ -1,44 +1,562 @@
-<h1>Simulations</h1>
-<p class="sub">Toutes les simulations enregistrées par les clients.</p>
 
-<div *ngIf="loading">Chargement…</div>
-<div class="error" *ngIf="error">{{ error }}</div>
+<div class="admin-page">
 
-<!-- LISTE -->
-<div *ngIf="!detail && !loading">
-  <div class="empty" *ngIf="!items.length">Aucune simulation.</div>
+  <!-- EN-TÊTE -->
+  <header class="page-header">
+    <div>
+      <div class="breadcrumb">
+        Administration / Simulations de crédit
+      </div>
+      <h1>
+        <mat-icon>account_balance</mat-icon>
+        Historique des simulations
+      </h1>
+      <p class="subtitle">
+        Consultez et analysez les simulations de crédit finalisées.
+      </p>
+    </div>
 
-  <mat-card class="item" *ngFor="let s of items">
-    <div class="row">
-      <div class="info">
-        <h3>{{ s.libelle || s.typeSimulateur }}</h3>
-        <p>
-          User #{{ s.userId }} · {{ s.typeSimulateur }}
-          <span *ngIf="s.createdAt"> · {{ s.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
-        </p>
-        <div class="metrics">
-          <span *ngIf="s.montantDemande != null">Demandé : <b>{{ s.montantDemande | number:'1.0-0' }} DT</b></span>
-          <span *ngIf="s.montantMax != null">Max : <b>{{ s.montantMax | number:'1.0-0' }} DT</b></span>
-          <span *ngIf="s.mensualite != null">Mens. : <b>{{ s.mensualite | number:'1.2-2' }} DT</b></span>
+    <button *ngIf="!detail"
+            mat-stroked-button
+            type="button"
+            class="refresh-button"
+            [disabled]="loading"
+            (click)="reload()">
+      <mat-icon>refresh</mat-icon>
+      Actualiser
+    </button>
+  </header>
+
+  <!-- CHARGEMENT ET ERREURS -->
+  <div *ngIf="loading" class="state-box">
+    <mat-icon>hourglass_empty</mat-icon>
+    <p>Chargement de l'historique...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="state-box error-box">
+    <mat-icon>error_outline</mat-icon>
+    <p>{{ error }}</p>
+    <button mat-stroked-button (click)="reload()">
+      Réessayer
+    </button>
+  </div>
+
+  <!-- ==================== HISTORIQUE ==================== -->
+  <ng-container *ngIf="!loading && !error && !detail">
+
+    <!-- INDICATEURS -->
+    <section class="stats-grid">
+
+      <mat-card class="stat-card">
+        <div class="stat-icon">
+          <mat-icon>assessment</mat-icon>
+        </div>
+        <div class="stat-content">
+          <span>Simulations finalisées</span>
+          <strong>{{ totalSimulations }}</strong>
+          <small>Historique enregistré</small>
+        </div>
+      </mat-card>
+
+      <mat-card class="stat-card">
+        <div class="stat-icon">
+          <mat-icon>credit_score</mat-icon>
+        </div>
+        <div class="stat-content">
+          <span>Sans rachat</span>
+          <strong>{{ totalSansRachat }}</strong>
+          <small>Financements classiques</small>
+        </div>
+      </mat-card>
+
+      <mat-card class="stat-card">
+        <div class="stat-icon">
+          <mat-icon>sync_alt</mat-icon>
+        </div>
+        <div class="stat-content">
+          <span>Rachats</span>
+          <strong>
+            {{ totalRachatInterne + totalRachatExterne }}
+          </strong>
+          <small>
+            {{ totalRachatInterne }} internes ·
+            {{ totalRachatExterne }} externes
+          </small>
+        </div>
+      </mat-card>
+
+      <mat-card class="stat-card">
+        <div class="stat-icon">
+          <mat-icon>payments</mat-icon>
+        </div>
+        <div class="stat-content">
+          <span>Mensualité moyenne enregistrée</span>
+          <strong>{{ money(mensualiteMoyenne) }}</strong>
+          <small>Selon les valeurs disponibles</small>
+        </div>
+      </mat-card>
+
+    </section>
+
+    <!-- RECHERCHE ET FILTRES -->
+    <mat-card class="history-card">
+
+      <div class="section-heading">
+        <div>
+          <h2>
+            <mat-icon>history</mat-icon>
+            Liste des simulations
+          </h2>
+          <p>
+            {{ filteredItems.length }} simulation(s) affichée(s)
+          </p>
         </div>
       </div>
-      <button mat-stroked-button type="button" (click)="openDetail(s)">Détail</button>
+
+      <div class="filter-bar">
+
+        <div class="search-field">
+          <mat-icon>search</mat-icon>
+          <input type="search"
+                 placeholder="Rechercher un client, un crédit, un ID..."
+                 [(ngModel)]="searchTerm"
+                 (ngModelChange)="applyFilters()"
+                 aria-label="Rechercher une simulation">
+        </div>
+
+        <select class="scenario-select"
+                [(ngModel)]="scenarioFilter"
+                (ngModelChange)="applyFilters()"
+                aria-label="Filtrer par scénario">
+          <option value="TOUS">Tous les scénarios</option>
+          <option value="SANS_RACHAT">Sans rachat</option>
+          <option value="RACHAT_INTERNE">Rachat interne</option>
+          <option value="RACHAT_EXTERNE">Rachat externe</option>
+        </select>
+
+        <button mat-stroked-button
+                type="button"
+                (click)="resetFilters()">
+          <mat-icon>filter_alt_off</mat-icon>
+          Réinitialiser
+        </button>
+
+      </div>
+
+      <!-- TABLEAU -->
+      <div class="table-container" *ngIf="filteredItems.length">
+
+        <table class="simulation-table">
+          <thead>
+            <tr>
+              <th>Simulation</th>
+              <th>Utilisateur</th>
+              <th>Scénario</th>
+              <th>Date</th>
+              <th>Montant demandé</th>
+              <th>Montant maximal</th>
+              <th>Mensualité</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="
+                let s of filteredItems;
+                trackBy: trackBySimulation
+              ">
+
+              <td>
+                <div class="table-primary">
+                  {{ s.libelle || 'Simulation de crédit' }}
+                </div>
+                <div class="table-secondary">
+                  Réf. {{ s.id ?? '—' }}
+                </div>
+              </td>
+
+              <td>
+                <span class="user-label">
+                  <mat-icon>person_outline</mat-icon>
+                  #{{ s.userId ?? '—' }}
+                </span>
+              </td>
+
+              <td>
+                <span class="scenario-badge"
+                      [ngClass]="{
+                    'badge-sans': scenario(s) === 'SANS_RACHAT',
+                    'badge-interne': scenario(s) === 'RACHAT_INTERNE',
+                    'badge-externe': scenario(s) === 'RACHAT_EXTERNE'
+                  }">
+                  {{ scenarioLabel(s) }}
+                </span>
+              </td>
+
+              <td class="date-cell">
+                {{
+ s.createdAt
+                    ? (s.createdAt | date:'dd/MM/yyyy HH:mm')
+                    : '—'
+                }}
+              </td>
+
+              <td class="amount-cell">
+                {{ money(historyMontantDemande(s)) }}
+              </td>
+
+              <td class="amount-cell">
+                {{ money(historyMontantMax(s)) }}
+              </td>
+
+              <td class="amount-cell important-amount">
+                {{ money(historyMensualite(s)) }}
+              </td>
+
+              <td>
+                <button mat-stroked-button
+                        type="button"
+                        class="detail-button"
+                        (click)="openDetail(s)">
+                  <mat-icon>visibility</mat-icon>
+                  Détails
+                </button>
+              </td>
+
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="empty-state" *ngIf="!filteredItems.length">
+        <mat-icon>folder_open</mat-icon>
+        <h3>Aucune simulation trouvée</h3>
+        <p>
+          Aucun enregistrement ne correspond aux filtres sélectionnés.
+        </p>
+        <button mat-stroked-button (click)="resetFilters()">
+          Effacer les filtres
+        </button>
+      </div>
+
+    </mat-card>
+  </ng-container>
+
+  <!-- ==================== DÉTAIL ==================== -->
+  <ng-container *ngIf="!loading && detail as s">
+
+    <div class="detail-topbar">
+      <button mat-stroked-button
+              type="button"
+              (click)="closeDetail()">
+        <mat-icon>arrow_back</mat-icon>
+        Retour à l'historique
+      </button>
+
+      <span class="finalized-badge">
+        <mat-icon>check_circle</mat-icon>
+        Simulation finalisée
+      </span>
     </div>
-  </mat-card>
-</div>
 
-<!-- DÉTAIL -->
-<div *ngIf="detail">
-  <button mat-button type="button" (click)="closeDetail()">← Retour</button>
-  <h2>{{ detail.libelle }}</h2>
-  <p class="sub">User #{{ detail.userId }} · {{ detail.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
+    <!-- IDENTITÉ DE LA SIMULATION -->
+    <mat-card class="detail-hero">
+      <div class="hero-content">
+        <span class="hero-eyebrow">
+          DOSSIER DE SIMULATION
+        </span>
 
-  <mat-card class="block" *ngIf="detailInputs">
-    <h3>Entrées</h3>
-    <pre>{{ detailInputs | json }}</pre>
-  </mat-card>
-  <mat-card class="block" *ngIf="detailResult">
-    <h3>Résultats</h3>
-    <pre>{{ detailResult | json }}</pre>
-  </mat-card>
+        <h2>
+          {{ s.libelle || detailTypeCredit() }}
+        </h2>
+
+        <p>
+          Référence #{{ s.id ?? '—' }}
+          · Utilisateur #{{ s.userId ?? '—' }}
+        </p>
+
+        <p *ngIf="s.createdAt">
+          <mat-icon>event</mat-icon>
+          {{ s.createdAt | date:'dd MMMM yyyy à HH:mm' }}
+        </p>
+      </div>
+
+      <div class="hero-scenario">
+        <span>Scénario</span>
+        <strong>{{ scenarioLabel(s) }}</strong>
+      </div>
+    </mat-card>
+
+    <!-- INDICATEURS PRINCIPAUX -->
+    <section class="detail-kpis">
+
+      <mat-card class="detail-kpi">
+        <span>Montant demandé</span>
+        <strong>{{ money(detailMontantDemande()) }}</strong>
+        <small>Financement sollicité</small>
+      </mat-card>
+
+      <mat-card class="detail-kpi">
+        <span>Mensualité calculée</span>
+        <strong>{{ money(detailMensualite()) }}</strong>
+        <small>Valeur enregistrée par le simulateur</small>
+      </mat-card>
+
+      <mat-card class="detail-kpi">
+        <span>Montant maximal</span>
+        <strong>{{ money(detailMontantMax()) }}</strong>
+        <small>Capacité maximale estimée</small>
+      </mat-card>
+
+      <mat-card class="detail-kpi">
+        <span>Durée du financement</span>
+        <strong>
+          {{ display(detailDuree()) }}
+          <span class="unit">mois</span>
+        </strong>
+        <small>Durée sélectionnée</small>
+      </mat-card>
+
+    </section>
+
+    <div class="detail-grid">
+
+      <!-- INFORMATIONS FINANCIÈRES -->
+      <mat-card class="info-card">
+
+        <div class="card-title">
+          <div class="card-icon">
+            <mat-icon>account_balance_wallet</mat-icon>
+          </div>
+          <div>
+            <h3>Situation financière</h3>
+            <p>Revenus et engagements déclarés</p>
+          </div>
+        </div>
+
+        <div class="data-row">
+          <span>Salaire mensuel net moyen</span>
+          <strong>
+            {{
+ money(input(
+              'salaireMensuelMoyen',
+              'salaireNetMoyen'
+            ))
+            }}
+          </strong>
+        </div>
+
+        <div class="data-row">
+          <span>50 % des loyers retenus</span>
+          <strong>
+            {{ money(detailLoyersRetenus())  }}
+          </strong>
+        </div>
+
+        <div class="data-row highlighted-row">
+          <span>Revenu mensuel net moyen total</span>
+          <strong>
+            {{ money(resultValue('totalRevenuNetMoyen')) }}
+          </strong>
+        </div>
+
+        <div class="data-row"
+             *ngIf="hasInput('retenuesSed')">
+          <span>Retenues SED</span>
+          <strong>{{ money(input('retenuesSed')) }}</strong>
+        </div>
+
+        <div class="data-row"
+             *ngIf="hasInput('retenuesCreditsBna')">
+          <span>Retenues crédits BNA</span>
+          <strong>
+            {{ money(input('retenuesCreditsBna')) }}
+          </strong>
+        </div>
+
+        <div class="data-row"
+             *ngIf="hasInput('retenuesCreditsBnaNonRachete')">
+          <span>Crédits BNA non rachetés</span>
+          <strong>
+            {{ money(input('retenuesCreditsBnaNonRachete')) }}
+          </strong>
+        </div>
+
+        <div class="data-row"
+             *ngIf="hasInput('retenuesSedNonRachete')">
+          <span>Retenues SED non rachetées</span>
+          <strong>
+            {{ money(input('retenuesSedNonRachete')) }}
+          </strong>
+        </div>
+
+      </mat-card>
+
+      <!-- PARAMÈTRES DU CRÉDIT -->
+      <mat-card class="info-card">
+
+        <div class="card-title">
+          <div class="card-icon">
+            <mat-icon>description</mat-icon>
+          </div>
+          <div>
+            <h3>Paramètres du crédit</h3>
+            <p>Caractéristiques du financement</p>
+          </div>
+        </div>
+
+        <div class="data-row">
+          <span>Type de simulation</span>
+          <strong>{{ scenarioLabel(s) }}</strong>
+        </div>
+
+        <div class="data-row">
+          <span>Produit de crédit</span>
+          <strong>{{ detailTypeCredit() }}</strong>
+        </div>
+
+        <div class="data-row">
+          <span>Durée</span>
+          <strong>{{ display(detailDuree()) }} mois</strong>
+        </div>
+
+        <div class="data-row">
+          <span>Taux d'intérêt annuel</span>
+          <strong>{{ percent(result('tauxAnnuel')) }}</strong>
+        </div>
+
+        <div class="data-row">
+          <span>Montant demandé</span>
+          <strong>{{ money(detailMontantDemande()) }}</strong>
+        </div>
+
+        <div class="data-row" *ngIf="isRachat">
+          <span>Capital restant à racheter</span>
+          <strong>
+            {{ money(resultValue('capitalRestantDu')) }}
+          </strong>
+        </div>
+
+        <div class="data-row" *ngIf="isRachat">
+          <span>Financement supplémentaire théorique</span>
+          <strong>
+            {{ money(result('reliquatCreditApresRachat')) }}
+          </strong>
+        </div>
+
+      </mat-card>
+
+      <!-- CAPACITÉ DE REMBOURSEMENT -->
+      <mat-card class="info-card">
+
+        <div class="card-title">
+          <div class="card-icon">
+            <mat-icon>calculate</mat-icon>
+          </div>
+          <div>
+            <h3>Capacité de remboursement</h3>
+            <p>Indicateurs calculés par le simulateur</p>
+          </div>
+        </div>
+
+        <div class="data-row">
+          <span>Taux d'endettement autorisé</span>
+          <strong>
+            {{ percentageValue('tauxEndettement') }}
+          </strong>
+        </div>
+
+        <div class="data-row">
+          <span>Garde-fou</span>
+          <strong>{{ percentageValue('gf')}}</strong>
+        </div>
+
+        <div class="data-row">
+          <span>Plafond d'endettement mensuel</span>
+          <strong>
+            {{ money(resultValue('plafondEndettementMensuel')) }}
+          </strong>
+        </div>
+
+        <div class="data-row highlighted-row">
+          <span>Capacité mensuelle disponible</span>
+          <strong>
+            {{ money(resultValue('availableMensualite')) }}
+          </strong>
+        </div>
+
+        
+      </mat-card>
+
+      <!-- RÉSULTATS -->
+      <mat-card class="info-card result-card">
+
+        <div class="card-title">
+          <div class="card-icon">
+            <mat-icon>insights</mat-icon>
+          </div>
+          <div>
+            <h3>Résultats de simulation</h3>
+            <p>Synthèse financière du calcul</p>
+          </div>
+        </div>
+
+        <div class="data-row">
+          <span>Montant maximal finançable</span>
+          <strong>{{ money(detailMontantMax()) }}</strong>
+        </div>
+
+        <div class="data-row">
+          <span>Mensualité enregistrée</span>
+          <strong>{{ money(detailMensualite()) }}</strong>
+        </div>
+
+        <div class="data-row">
+          <span>Total des engagements mensuels calculés</span>
+          <strong>
+            {{ money(detailTotalEngagements()) }}
+          </strong>
+        </div>
+
+        <div class="data-row">
+          <span>Taux d'endettement calculé</span>
+          <strong>
+            {{percentageValue('tauxEndettementCalcule') }}
+          </strong>
+        </div>
+
+        <div class="data-row" *ngIf="isRachat">
+          <span>Reliquat du crédit après rachat</span>
+          <strong>
+            {{ money(result('reliquatCreditApresRachat')) }}
+          </strong>
+        </div>
+
+        <div class="result-summary">
+          <div class="summary-heading">
+            <mat-icon>verified</mat-icon>
+            <strong>Simulation finalisée</strong>
+          </div>
+          <p>
+            Cette simulation a atteint la phase de résultat
+            selon les contrôles de l'application.
+          </p>
+          <small>
+            Le résultat est indicatif et ne constitue pas
+            une décision officielle d'octroi de crédit.
+          </small>
+        </div>
+
+      </mat-card>
+
+    </div>
+
+    <div class="detail-footer">
+      <mat-icon>info_outline</mat-icon>
+      Informations issues de l'historique enregistré
+      par le simulateur de crédit BNA.
+    </div>
+
+  </ng-container>
+
 </div>

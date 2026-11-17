@@ -1,0 +1,82 @@
+<section class="admin-dossiers">
+  <header class="heading">
+    <div><span class="eyebrow">Traitement documentaire</span><h1>Dossiers de crédit</h1>
+      <p>Vérifiez les documents et les données OCR. Cette validation ne décide pas de l’octroi du crédit.</p></div>
+    <button type="button" (click)="load()" [disabled]="loading">Actualiser</button>
+  </header>
+
+  <p class="notice error" *ngIf="error">{{ error }}</p>
+  <p class="notice success" *ngIf="message">{{ message }}</p>
+
+  <div class="workspace">
+    <aside class="dossier-list">
+      <p *ngIf="loading">Chargement…</p>
+      <button type="button" *ngFor="let dossier of dossiers" [class.selected]="selected?.id === dossier.id" (click)="open(dossier)">
+        <strong>{{ dossier.libelle }}</strong>
+        <span>{{ dossier.reference }} · {{ statusLabel(dossier.statut) }}</span>
+      </button>
+      <p *ngIf="!loading && !dossiers.length">Aucun dossier.</p>
+    </aside>
+
+    <main class="detail" *ngIf="details as detail; else chooseDossier">
+      <header class="detail-heading">
+        <div><span class="eyebrow">{{ detail.dossier.reference }}</span><h2>{{ detail.dossier.libelle }}</h2></div>
+        <span class="status">{{ statusLabel(detail.dossier.statut) }}</span>
+      </header>
+      <dl class="meta">
+        <div><dt>Scénario</dt><dd>{{ detail.checklist?.scenario || '—' }}</dd></div>
+        <div><dt>Vendeur</dt><dd>{{ detail.dossier.typeVendeur || '—' }}</dd></div>
+        <div><dt>Revenus supplémentaires</dt><dd>{{ detail.dossier.revenusSupplementairesDeclares ? 'Déclarés' : 'Non déclarés' }}</dd></div>
+      </dl>
+      <section class="promoter-review" *ngIf="detail.dossier.typeVendeur === 'PROMOTEUR_AGREE'">
+        <h3>Contrôle manuel de l’agrément du promoteur</h3>
+        <p>Le nom du vendeur ne prouve pas son agrément. Statut : <b>{{ detail.dossier.statutVerificationPromoteur || 'A_VERIFIER' }}</b></p>
+        <p *ngIf="detail.dossier.motifVerificationPromoteur">Note enregistrée : {{ detail.dossier.motifVerificationPromoteur }}</p>
+        <label>Référence ou note de vérification<textarea [(ngModel)]="promoterNote" rows="2"></textarea></label>
+        <div class="actions">
+          <button type="button" (click)="reviewPromoter('VERIFIE')">Agrément vérifié</button>
+          <button type="button" class="danger" (click)="reviewPromoter('NON_VERIFIE')">Non vérifié</button>
+          <button type="button" (click)="reviewPromoter('A_VERIFIER')">À vérifier</button>
+        </div>
+      </section>
+      <section class="checklist">
+        <h3>Checklist générée</h3>
+        <p *ngFor="let item of detail.checklist?.documents">{{ item.libelle }} · {{ item.statut }}</p>
+        <p *ngFor="let group of detail.checklist?.groupesAlternatifs">{{ group.libelle }} · {{ group.satisfait ? 'satisfait' : 'manquant' }}</p>
+        <p *ngFor="let rule of detail.checklist?.reglesEnAttente" class="pending">{{ rule.statut }} · {{ rule.description }}</p>
+      </section>
+      <section class="analysis" *ngIf="detail.analyse as analysis">
+        <h3>Pré-analyse OCR</h3><p>{{ analysis.message }}</p>
+        <ul><li *ngFor="let alert of analysis.pointsVerification">{{ alert }}</li></ul>
+      </section>
+
+      <h3>Documents et versions</h3>
+      <article class="document" *ngFor="let doc of documents()">
+        <header>
+          <div><strong>{{ label(doc.type) }} · v{{ doc.version }}{{ doc.actif ? ' (actuelle)' : ' (historique)' }}</strong>
+            <span>{{ doc.nomFichier }} · {{ doc.statutValidation }}</span></div>
+          <div class="actions">
+            <button type="button" (click)="openOriginal(doc)">Télécharger l'original</button>
+            <button type="button" (click)="reanalyze(doc)" [disabled]="busyDocumentId === doc.id">Relancer PaddleOCR</button>
+          </div>
+        </header>
+        <div class="fields"><div *ngFor="let field of fields(doc)"><small>{{ field.key }}</small><b>{{ field.value | json }}</b></div></div>
+        <p class="ocr-meta">Type détecté : <b>{{ doc.typeDocument || 'indéterminé' }}</b> · Statut type : <b>{{ doc.statutType || '—' }}</b> · Confiance : <b>{{ doc.confiance != null ? ((doc.confiance * 100) | number:'1.0-0') + '%' : '—' }}</b></p>
+        <ul class="doc-alerts" *ngIf="doc.alertes?.length"><li *ngFor="let alert of doc.alertes">{{ alert }}</li></ul>
+        <details *ngIf="doc.texteExtrait"><summary>Texte reconnu</summary><pre>{{ doc.texteExtrait }}</pre></details>
+        <details *ngIf="doc.historiqueOcr?.length"><summary>Anciennes analyses OCR ({{ doc.historiqueOcr.length }})</summary><pre>{{ doc.historiqueOcr | json }}</pre></details>
+        <details *ngIf="doc.historiqueCorrectionsAdmin?.length"><summary>Historique des corrections ({{ doc.historiqueCorrectionsAdmin.length }})</summary><pre>{{ doc.historiqueCorrectionsAdmin | json }}</pre></details>
+        <div class="review" *ngIf="doc.actif">
+          <label>Motif ou remarque<textarea [(ngModel)]="motif" rows="2"></textarea></label>
+          <label>Corrections des champs OCR (JSON)<textarea [(ngModel)]="correctionsJson" rows="3"></textarea></label>
+          <div class="actions">
+            <button type="button" (click)="review(doc, 'VALIDE')" [disabled]="busyDocumentId === doc.id">Valider le document</button>
+            <button type="button" class="warning" (click)="review(doc, 'REMPLACEMENT_DEMANDE')" [disabled]="busyDocumentId === doc.id">Demander un remplacement</button>
+            <button type="button" class="danger" (click)="review(doc, 'REJETE')" [disabled]="busyDocumentId === doc.id">Rejeter le document</button>
+          </div>
+        </div>
+      </article>
+    </main>
+    <ng-template #chooseDossier><div class="empty">Sélectionnez un dossier pour afficher sa checklist et ses documents.</div></ng-template>
+  </div>
+</section>

@@ -733,6 +733,28 @@ $shadow-hover: 0 14px 36px rgba(15, 23, 42, 0.1);
   }
 }
 
+.dossier-cta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  margin-top: 18px;
+  padding: 16px 18px;
+  border: 1px solid #cde6dc;
+  border-radius: 14px;
+  background: #f2faf6;
+
+  > div {
+    display: grid;
+    gap: 5px;
+  }
+
+  strong { color: #174b3b; font-size: 14px; }
+  span { color: #60796f; font-size: 12px; }
+
+  button { flex-shrink: 0; }
+}
+
 /* ---------- RÉCAP ---------- */
 .wiz-recap {
   position: sticky;
@@ -880,5 +902,12 @@ $shadow-hover: 0 14px 36px rgba(15, 23, 42, 0.1);
   .rate-card .total-rate {
     margin-left: 0;
     width: 100%;
+  }
+
+  .dossier-cta {
+    align-items: stretch;
+    flex-direction: column;
+
+    button { width: 100%; }
   }
 }

@@ -1,17 +1,26 @@
+
 import { Injectable } from '@angular/core';
-import { ScenarioType, WizardStateService } from './wizard-state.service';
+
+import {
+  ScenarioType,
+  WizardStateService
+} from './wizard-state.service';
 
 export interface CreditCalculationInput {
   salaireMensuelMoyen: number;
+
   /** Loyers bruts ; 50 % appliqués ici */
   loyersDomicilies: number;
+
   retenuesSed: number;
   retenuesBna: number;
   capitalRestantDu: number;
   montantDemande: number;
   duree: number;
+
   /** Taux annuel en % (ex. 10.99) */
   tauxAnnuel: number;
+
   scenario: ScenarioType;
 }
 
@@ -36,42 +45,192 @@ export interface CreditCalculationResult {
   message: string;
 }
 
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root'
+})
 export class CreditCalculationService {
-  constructor(private wizard: WizardStateService) { }
 
-  private valeurActuelle(tauxAnnuelPct: number, duree: number, mensualite: number): number {
-    if (duree <= 0 || mensualite <= 0) return 0;
+  constructor(
+    private readonly wizard: WizardStateService
+  ) { }
+
+  // =====================================================
+  // FORMULE VA
+  // =====================================================
+
+  private valeurActuelle(
+    tauxAnnuelPct: number,
+    duree: number,
+    mensualite: number
+  ): number {
+
+    if (duree <= 0 || mensualite <= 0) {
+      return 0;
+    }
+
     const r = tauxAnnuelPct / 100 / 12;
-    if (Math.abs(r) < 1e-12) return mensualite * duree;
-    return (mensualite * (1 - Math.pow(1 + r, -duree))) / r;
+
+    if (Math.abs(r) < 1e-12) {
+      return mensualite * duree;
+    }
+
+    return (
+      mensualite *
+      (1 - Math.pow(1 + r, -duree))
+    ) / r;
   }
 
-  private vpm(tauxAnnuelPct: number, duree: number, capital: number): number {
-    if (duree <= 0 || capital <= 0) return 0;
+  // =====================================================
+  // FORMULE VPM
+  // =====================================================
+
+  private vpm(
+    tauxAnnuelPct: number,
+    duree: number,
+    capital: number
+  ): number {
+
+    if (duree <= 0 || capital <= 0) {
+      return 0;
+    }
+
     const r = tauxAnnuelPct / 100 / 12;
-    if (Math.abs(r) < 1e-12) return capital / duree;
-    return (capital * r * Math.pow(1 + r, duree)) / (Math.pow(1 + r, duree) - 1);
+
+    if (Math.abs(r) < 1e-12) {
+      return capital / duree;
+    }
+
+    return (
+      capital *
+      r *
+      Math.pow(1 + r, duree)
+    ) / (
+        Math.pow(1 + r, duree) - 1
+      );
   }
 
   private round2(x: number): number {
     return Math.round(x * 100) / 100;
   }
 
-  calculate(input: CreditCalculationInput): CreditCalculationResult {
-    const salaire = Number(input.salaireMensuelMoyen) || 0;
-    const loyers = Number(input.loyersDomicilies) || 0;
-    const retenuesSed = Number(input.retenuesSed) || 0;
-    const retenuesBna = Number(input.retenuesBna) || 0;
-    const capitalRestantDu = Number(input.capitalRestantDu) || 0;
-    const montantDemande = Number(input.montantDemande) || 0;
-    const duree = Number(input.duree) || 0;
-    const tauxAnnuel = Number(input.tauxAnnuel) || 0;
+  // =====================================================
+  // CALCUL PRINCIPAL
+  // =====================================================
+
+  calculate(
+    input: CreditCalculationInput
+  ): CreditCalculationResult {
+
+    const salaire =
+      Number(input.salaireMensuelMoyen) || 0;
+
+    const loyers =
+      Number(input.loyersDomicilies) || 0;
+
+    const retenuesSed =
+      Number(input.retenuesSed) || 0;
+
+    const retenuesBna =
+      Number(input.retenuesBna) || 0;
+
+    const capitalRestantDu =
+      Number(input.capitalRestantDu) || 0;
+
+    const montantDemande =
+      Number(input.montantDemande) || 0;
+
+    const duree =
+      Number(input.duree) || 0;
+
     const scenario = input.scenario;
 
-    const revenuNetMoyen = salaire + loyers * 0.5;
+    const revenuNetMoyen =
+      salaire + loyers * 0.5;
 
-    if (scenario !== 'RACHAT_EXTERNE' && salaire < 1000) {
+    // ===================================================
+    // VERIFICATION DU PARAMETRAGE
+    // ===================================================
+
+    if (!this.wizard.parametrageCharge) {
+
+      return this.emptyResult(
+        input,
+        revenuNetMoyen,
+        0,
+        'Les paramètres bancaires ne sont pas encore chargés.'
+      );
+    }
+
+    // Le taux doit être récupéré depuis le service
+    // dynamique, en utilisant le produit sélectionné.
+
+    const typeCredit = this.wizard.snapshot.typeCredit;
+
+    if (!typeCredit) {
+
+      return this.emptyResult(
+        input,
+        revenuNetMoyen,
+        0,
+        'Veuillez sélectionner un type de crédit.'
+      );
+    }
+
+    const config = this.wizard.getConfig(typeCredit);
+
+    if (!config) {
+
+      return this.emptyResult(
+        input,
+        revenuNetMoyen,
+        0,
+        'Le produit sélectionné ne possède pas de configuration bancaire.'
+      );
+    }
+
+    const tauxAnnuel =
+      this.wizard.getTauxAnnuelPct(typeCredit);
+
+    if (
+      !Number.isFinite(tauxAnnuel) ||
+      tauxAnnuel < 0
+    ) {
+
+      return this.emptyResult(
+        input,
+        revenuNetMoyen,
+        0,
+        'Taux annuel invalide.'
+      );
+    }
+
+    // ===================================================
+    // VERIFICATION DE LA DUREE
+    // ===================================================
+
+    if (
+      duree <= 0 ||
+      !Number.isInteger(duree) ||
+      duree > config.maxMois
+    ) {
+
+      return this.emptyResult(
+        input,
+        revenuNetMoyen,
+        tauxAnnuel,
+        `Durée invalide. Maximum autorisé : ${config.maxMois} mois.`
+      );
+    }
+
+    // ===================================================
+    // VERIFICATION DU SALAIRE
+    // ===================================================
+
+    if (
+      scenario !== 'RACHAT_EXTERNE' &&
+      salaire < 1000
+    ) {
+
       return this.emptyResult(
         input,
         revenuNetMoyen,
@@ -80,18 +239,43 @@ export class CreditCalculationService {
       );
     }
 
+    // ===================================================
+    // TAUX ENDETTEMENT ET GARDE-FOU
+    // ===================================================
+
     let tauxEndettement: number | null;
     let gardeFou: number | null;
 
     if (scenario === 'RACHAT_EXTERNE') {
-      tauxEndettement = this.wizard.getTauxEndettementExterne(revenuNetMoyen);
-      gardeFou = this.wizard.getGardeFouExterne(salaire);
+
+      tauxEndettement =
+        this.wizard.getTauxEndettementExterne(
+          revenuNetMoyen
+        );
+
+      gardeFou =
+        this.wizard.getGardeFouExterne(
+          salaire
+        );
+
     } else {
-      tauxEndettement = this.wizard.getTauxEndettement(revenuNetMoyen);
-      gardeFou = this.wizard.getGardeFou(salaire);
+
+      tauxEndettement =
+        this.wizard.getTauxEndettement(
+          revenuNetMoyen
+        );
+
+      gardeFou =
+        this.wizard.getGardeFou(
+          salaire
+        );
     }
 
-    if (tauxEndettement === null || gardeFou === null) {
+    if (
+      tauxEndettement === null ||
+      gardeFou === null
+    ) {
+
       return this.emptyResult(
         input,
         revenuNetMoyen,
@@ -100,93 +284,218 @@ export class CreditCalculationService {
       );
     }
 
+    // ===================================================
+    // PLAFOND D'ENDETTEMENT
+    // ===================================================
+
     const plafondEndettement = Math.min(
       tauxEndettement * revenuNetMoyen,
       salaire * gardeFou
     );
 
+    // ===================================================
+    // RELIQUAT DE CAPACITE
+    // ===================================================
+
     let reliquatCapacite = 0;
+
     if (scenario === 'RACHAT_EXTERNE') {
-      reliquatCapacite = plafondEndettement - retenuesSed;
+
+      reliquatCapacite =
+        plafondEndettement - retenuesSed;
+
     } else {
-      reliquatCapacite = plafondEndettement - retenuesSed - retenuesBna;
+
+      reliquatCapacite =
+        plafondEndettement -
+        retenuesSed -
+        retenuesBna;
     }
 
-    const mensualiteDisponible = Math.max(0, reliquatCapacite);
+    const mensualiteDisponible = Math.max(
+      0,
+      reliquatCapacite
+    );
+
+    // ===================================================
+    // MONTANT MAXIMAL
+    // ===================================================
 
     let montantMaxCredit = 0;
     let capaciteInsuffisante = false;
 
-    if (duree > 0 && mensualiteDisponible > 0) {
-      const va = this.valeurActuelle(tauxAnnuel, duree, mensualiteDisponible);
+    if (
+      duree > 0 &&
+      mensualiteDisponible > 0
+    ) {
+
+      const va = this.valeurActuelle(
+        tauxAnnuel,
+        duree,
+        mensualiteDisponible
+      );
 
       if (scenario === 'SANS_RACHAT') {
+
         montantMaxCredit = va;
-      } else if (scenario === 'RACHAT_INTERNE' || scenario === 'RACHAT_EXTERNE') {
+
+      } else if (
+        scenario === 'RACHAT_INTERNE' ||
+        scenario === 'RACHAT_EXTERNE'
+      ) {
+
         if (va < capitalRestantDu) {
+
           capaciteInsuffisante = true;
           montantMaxCredit = 0;
+
         } else {
+
           montantMaxCredit = va;
         }
       }
     }
 
     if (mensualiteDisponible <= 0) {
+
       montantMaxCredit = 0;
+
       if (
-        (scenario === 'RACHAT_INTERNE' || scenario === 'RACHAT_EXTERNE') &&
+        (
+          scenario === 'RACHAT_INTERNE' ||
+          scenario === 'RACHAT_EXTERNE'
+        ) &&
         capitalRestantDu > 0
       ) {
+
         capaciteInsuffisante = true;
       }
     }
 
-    const mensualiteMax = capaciteInsuffisante ? 0 : mensualiteDisponible;
-    const mensualiteDemande = this.vpm(tauxAnnuel, duree, montantDemande);
+    // ===================================================
+    // MENSUALITES
+    // ===================================================
+
+    const mensualiteMax =
+      capaciteInsuffisante
+        ? 0
+        : mensualiteDisponible;
+
+    const mensualiteDemande = this.vpm(
+      tauxAnnuel,
+      duree,
+      montantDemande
+    );
+
+    // ===================================================
+    // RELIQUAT APRES RACHAT
+    // ===================================================
 
     let reliquatCreditApresRachat = 0;
-    if (scenario === 'RACHAT_INTERNE' || scenario === 'RACHAT_EXTERNE') {
+
+    if (
+      scenario === 'RACHAT_INTERNE' ||
+      scenario === 'RACHAT_EXTERNE'
+    ) {
+
       reliquatCreditApresRachat =
-        montantDemande === 0 ? 0 : montantDemande - capitalRestantDu;
+        montantDemande === 0
+          ? 0
+          : montantDemande - capitalRestantDu;
     }
+
+    // ===================================================
+    // TOTAL RETENUES
+    // ===================================================
 
     const totalRetenues =
       scenario === 'RACHAT_EXTERNE'
         ? retenuesSed + mensualiteDemande
-        : retenuesSed + retenuesBna + mensualiteDemande;
+        : retenuesSed +
+        retenuesBna +
+        mensualiteDemande;
+
+    // ===================================================
+    // TAUX D'ENDETTEMENT FINAL
+    // ===================================================
 
     const tauxEndettementFinal =
-      revenuNetMoyen === 0 ? null : totalRetenues / revenuNetMoyen;
+      revenuNetMoyen === 0
+        ? null
+        : totalRetenues / revenuNetMoyen;
+
+    // ===================================================
+    // MESSAGE
+    // ===================================================
 
     let message = 'Calcul effectué.';
+
     if (capaciteInsuffisante) {
-      message = 'Capacité insuffisante pour refinancer le capital restant dû.';
-    } else if (montantDemande > 0 && montantDemande > montantMaxCredit) {
-      message = 'Le montant demandé dépasse le montant maximal calculé.';
+
+      message =
+        'Capacité insuffisante pour refinancer le capital restant dû.';
+
+    } else if (
+      montantDemande > 0 &&
+      montantDemande > montantMaxCredit
+    ) {
+
+      message =
+        'Le montant demandé dépasse le montant maximal calculé.';
     }
+
+    // ===================================================
+    // RESULTAT
+    // ===================================================
 
     return {
       scenario,
-      revenuNetMoyen: this.round2(revenuNetMoyen),
+
+      revenuNetMoyen:
+        this.round2(revenuNetMoyen),
+
       tauxEndettement,
       gardeFou,
-      plafondEndettement: this.round2(plafondEndettement),
-      reliquatCapacite: this.round2(reliquatCapacite),
+
+      plafondEndettement:
+        this.round2(plafondEndettement),
+
+      reliquatCapacite:
+        this.round2(reliquatCapacite),
+
       tauxAnnuel,
-      tauxMensuel: tauxAnnuel / 100 / 12,
-      montantMaxCredit: this.round2(montantMaxCredit),
+
+      tauxMensuel:
+        tauxAnnuel / 100 / 12,
+
+      montantMaxCredit:
+        this.round2(montantMaxCredit),
+
       capaciteInsuffisante,
-      mensualiteMax: this.round2(mensualiteMax),
-      mensualiteDemande: this.round2(mensualiteDemande),
+
+      mensualiteMax:
+        this.round2(mensualiteMax),
+
+      mensualiteDemande:
+        this.round2(mensualiteDemande),
+
       montantDemande,
       capitalRestantDu,
-      reliquatCreditApresRachat: this.round2(reliquatCreditApresRachat),
-      totalRetenues: this.round2(totalRetenues),
+
+      reliquatCreditApresRachat:
+        this.round2(reliquatCreditApresRachat),
+
+      totalRetenues:
+        this.round2(totalRetenues),
+
       tauxEndettementFinal,
       message
     };
   }
+
+  // =====================================================
+  // RESULTAT VIDE / ERREUR
+  // =====================================================
 
   private emptyResult(
     input: CreditCalculationInput,
@@ -194,24 +503,40 @@ export class CreditCalculationService {
     tauxAnnuel: number,
     message: string
   ): CreditCalculationResult {
+
     return {
       scenario: input.scenario,
-      revenuNetMoyen: this.round2(revenuNetMoyen),
+
+      revenuNetMoyen:
+        this.round2(revenuNetMoyen),
+
       tauxEndettement: null,
       gardeFou: null,
+
       plafondEndettement: 0,
       reliquatCapacite: 0,
+
       tauxAnnuel,
-      tauxMensuel: tauxAnnuel / 100 / 12,
+
+      tauxMensuel:
+        tauxAnnuel / 100 / 12,
+
       montantMaxCredit: 0,
       capaciteInsuffisante: true,
+
       mensualiteMax: 0,
       mensualiteDemande: 0,
-      montantDemande: Number(input.montantDemande) || 0,
-      capitalRestantDu: Number(input.capitalRestantDu) || 0,
+
+      montantDemande:
+        Number(input.montantDemande) || 0,
+
+      capitalRestantDu:
+        Number(input.capitalRestantDu) || 0,
+
       reliquatCreditApresRachat: 0,
       totalRetenues: 0,
       tauxEndettementFinal: null,
+
       message
     };
   }

@@ -1,0 +1,417 @@
+
+<div class="param-admin">
+
+  <!-- EN-TÊTE -->
+  <div class="page-header">
+
+    <div>
+      <span class="eyebrow">
+        ADMINISTRATION BNA
+      </span>
+
+      <h1>Paramétrage bancaire</h1>
+
+      <p>
+        Gestion du TMM et des marges appliquées
+        aux produits de crédit.
+      </p>
+    </div>
+
+    <button mat-stroked-button
+            class="refresh-btn"
+            type="button"
+            [disabled]="chargement || sauvegardeTmm ||
+                  sauvegardeMargeId !== null"
+            (click)="chargerParametrage()">
+
+      <mat-icon>refresh</mat-icon>
+      Actualiser
+
+    </button>
+
+  </div>
+
+  <mat-progress-bar *ngIf="chargement"
+                    mode="indeterminate">
+  </mat-progress-bar>
+
+  <div class="error-box" *ngIf="erreur">
+    <mat-icon>error_outline</mat-icon>
+    <span>{{ erreur }}</span>
+  </div>
+
+  <!-- STATISTIQUES -->
+  <div class="stats-grid">
+
+    <div class="stat-card">
+      <mat-icon>account_balance</mat-icon>
+      <span>TMM actuel</span>
+      <strong>
+        {{ tmm | number:'1.2-2' }} %
+      </strong>
+    </div>
+
+    <div class="stat-card">
+      <mat-icon>credit_card</mat-icon>
+      <span>Configurations produits</span>
+      <strong>{{ nombreProduits }}</strong>
+    </div>
+
+    <div class="stat-card">
+      <mat-icon>payments</mat-icon>
+      <span>Sans rachat</span>
+      <strong>{{ nombreSansRachat }}</strong>
+    </div>
+
+    <div class="stat-card">
+      <mat-icon>swap_horiz</mat-icon>
+      <span>Configurations de rachat</span>
+      <strong>
+        {{ nombreRachatInterne + nombreRachatExterne }}
+      </strong>
+    </div>
+
+  </div>
+
+  <!-- PARAMÉTRAGE TMM -->
+  <section class="panel">
+
+    <div class="panel-heading">
+      <div class="panel-title">
+        <div class="section-icon">
+          <mat-icon>show_chart</mat-icon>
+        </div>
+
+        <div>
+          <h2>Taux du Marché Monétaire</h2>
+          <p>
+            TMM utilisé comme base des taux annuels.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="tmm-layout">
+
+      <div class="tmm-current">
+        <span>TMM en vigueur dans le simulateur</span>
+
+        <strong>
+          {{ tmm | number:'1.2-2' }}
+          <small>%</small>
+        </strong>
+
+        <p>
+          Taux annuel = TMM + marge du produit
+        </p>
+      </div>
+
+      <div class="tmm-editor">
+
+        <ng-container *ngIf="!editionTmm">
+
+          <p>
+            La modification du TMM impactera les
+            prochaines simulations.
+          </p>
+
+          <button mat-flat-button
+                  class="primary-btn"
+                  type="button"
+                  [disabled]="chargement || sauvegardeTmm"
+                  (click)="commencerEditionTmm()">
+
+            <mat-icon>edit</mat-icon>
+            Modifier le TMM
+
+          </button>
+
+        </ng-container>
+
+        <ng-container *ngIf="editionTmm">
+
+          <mat-form-field appearance="outline"
+                          class="full">
+
+            <mat-label>Nouveau TMM (%)</mat-label>
+
+            <input matInput
+                   type="number"
+                   min="0"
+                   max="100"
+                   step="0.01"
+                   [(ngModel)]="nouveauTmm" />
+
+            <span matSuffix>%</span>
+
+            <mat-hint>
+              Exemple : 7.49
+            </mat-hint>
+
+          </mat-form-field>
+
+          <div class="editor-actions">
+
+            <button mat-button
+                    type="button"
+                    [disabled]="sauvegardeTmm"
+                    (click)="annulerEditionTmm()">
+              Annuler
+            </button>
+
+            <button mat-flat-button
+                    class="primary-btn"
+                    type="button"
+                    [disabled]="!tmmValide || sauvegardeTmm"
+                    (click)="enregistrerTmm()">
+
+              <mat-icon>save</mat-icon>
+
+              {{
+                sauvegardeTmm
+                  ? 'Enregistrement…'
+                  : 'Enregistrer'
+              }}
+
+            </button>
+
+          </div>
+
+          <p class="field-error" *ngIf="messageTmm">
+            {{ messageTmm }}
+          </p>
+
+        </ng-container>
+
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- MARGES -->
+  <section class="panel">
+
+    <div class="panel-heading">
+
+      <div class="panel-title">
+        <div class="section-icon">
+          <mat-icon>tune</mat-icon>
+        </div>
+
+        <div>
+          <h2>Marges des produits de crédit</h2>
+          <p>
+            Chaque produit possède une marge propre
+            à son scénario.
+          </p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- FILTRES -->
+    <div class="filters">
+
+      <mat-form-field appearance="outline"
+                      class="filter-field">
+
+        <mat-label>Scénario</mat-label>
+
+        <mat-select [(ngModel)]="scenarioFiltre">
+
+          <mat-option *ngFor="let s of scenarios"
+                      [value]="s.value">
+            {{ s.label }}
+          </mat-option>
+
+        </mat-select>
+
+      </mat-form-field>
+
+      <mat-form-field appearance="outline"
+                      class="filter-field search-field">
+
+        <mat-label>Rechercher un produit</mat-label>
+
+        <mat-icon matPrefix>search</mat-icon>
+
+        <input matInput
+               type="text"
+               [(ngModel)]="recherche"
+               placeholder="Nom du crédit..." />
+
+      </mat-form-field>
+
+    </div>
+
+    <div class="table-summary">
+      {{ margesFiltrees.length }} configuration(s) affichée(s)
+    </div>
+
+    <!-- TABLEAU -->
+    <div class="table-wrapper">
+
+      <table class="marges-table">
+
+        <thead>
+          <tr>
+            <th>Produit de crédit</th>
+            <th>Scénario</th>
+            <th>Durée max.</th>
+            <th>Marge</th>
+            <th>Taux annuel</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          <tr *ngFor="
+              let marge of margesFiltrees;
+              trackBy: trackByMarge
+            ">
+
+            <td class="product-name">
+              {{ marge.typeCredit }}
+            </td>
+
+            <td>
+              <span class="scenario-tag"
+                    [class.externe]="
+                  marge.scenario === 'RACHAT_EXTERNE'
+                "
+                    [class.interne]="
+                  marge.scenario === 'RACHAT_INTERNE'
+                ">
+
+                {{ labelScenario(marge.scenario) }}
+
+              </span>
+            </td>
+
+            <td>
+              {{ marge.maxMois }} mois
+            </td>
+
+            <td>
+
+              <ng-container *ngIf="margeEnEditionId !== marge.id">
+
+                <strong class="marge-value">
+                  {{ marge.marge | number:'1.2-2' }} %
+                </strong>
+
+              </ng-container>
+
+              <ng-container *ngIf="margeEnEditionId === marge.id">
+
+                <mat-form-field appearance="outline"
+                                class="marge-input">
+
+                  <input matInput
+                         type="number"
+                         min="0"
+                         max="100"
+                         step="0.01"
+                         [(ngModel)]="nouvelleMarge" />
+
+                  <span matSuffix>%</span>
+
+                </mat-form-field>
+
+              </ng-container>
+
+            </td>
+
+            <td>
+              <strong class="annual-rate">
+                {{ tauxAnnuel(marge) | number:'1.2-2' }} %
+              </strong>
+            </td>
+
+            <td>
+
+              <ng-container *ngIf="margeEnEditionId !== marge.id">
+
+                <button mat-icon-button
+                        type="button"
+                        title="Modifier la marge"
+                        [disabled]="
+                    chargement ||
+                    sauvegardeMargeId !== null
+                  "
+                        (click)="commencerEditionMarge(marge)">
+
+                  <mat-icon>edit</mat-icon>
+
+                </button>
+
+              </ng-container>
+
+              <ng-container *ngIf="margeEnEditionId === marge.id">
+
+                <div class="row-actions">
+
+                  <button mat-icon-button
+                          type="button"
+                          title="Enregistrer"
+                          [disabled]="
+                      !margeValide ||
+                      sauvegardeMargeId !== null
+                    "
+                          (click)="enregistrerMarge(marge)">
+
+                    <mat-icon>check</mat-icon>
+
+                  </button>
+
+                  <button mat-icon-button
+                          type="button"
+                          title="Annuler"
+                          [disabled]="sauvegardeMargeId !== null"
+                          (click)="annulerEditionMarge()">
+
+                    <mat-icon>close</mat-icon>
+
+                  </button>
+
+                </div>
+
+              </ng-container>
+
+            </td>
+
+          </tr>
+
+          <tr *ngIf="margesFiltrees.length === 0">
+            <td colspan="6" class="empty-state">
+              Aucun produit trouvé pour ce filtre.
+            </td>
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </section>
+
+  <!-- INFORMATION -->
+  <div class="info-banner">
+
+    <mat-icon>info</mat-icon>
+
+    <p>
+      Les modifications sont enregistrées dans le
+      paramétrage bancaire. Les nouvelles simulations
+      utiliseront les valeurs actualisées après
+      rechargement des paramètres.
+      Les simulations déjà enregistrées conservent
+      leurs résultats historiques.
+    </p>
+
+  </div>
+
+</div>

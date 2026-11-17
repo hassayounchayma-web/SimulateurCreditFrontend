@@ -9,7 +9,6 @@ export class AuthGuard implements CanActivate {
 
   canActivate(): boolean {
     console.log('🔍 [AuthGuard] Vérification...');
-    console.log('🔍 [AuthGuard] Token:', this.authService.getToken());
     console.log('🔍 [AuthGuard] Authentifié:', this.authService.isAuthenticated());
     
     if (this.authService.isAuthenticated()) {

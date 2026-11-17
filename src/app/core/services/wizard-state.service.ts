@@ -1,7 +1,26 @@
-import { Injectable } from '@angular/core';
 
-export type ScenarioType = 'SANS_RACHAT' | 'RACHAT_INTERNE' | 'RACHAT_EXTERNE' | null;
-export type ProjetType = 'PERSONNEL' | 'AUTO' | 'IMMO' | null;
+import { Injectable } from '@angular/core';
+import { BehaviorSubject, Observable } from 'rxjs';
+import { finalize, map, tap } from 'rxjs/operators';
+
+import { ParametrageService } from './parametrage.service';
+
+import {
+  ParametrageResponse,
+  ScenarioCode
+} from '../models/parametrage.model';
+
+export type ScenarioType =
+  | 'SANS_RACHAT'
+  | 'RACHAT_INTERNE'
+  | 'RACHAT_EXTERNE'
+  | null;
+
+export type ProjetType =
+  | 'PERSONNEL'
+  | 'AUTO'
+  | 'IMMO'
+  | null;
 
 export interface CreditConfig {
   maxMois: number;
@@ -24,50 +43,31 @@ export interface WizardState {
   step: number;
 }
 
-const SANS_RACHAT: Record<string, CreditConfig> = {
-  'Crédit Direct Dépenses Courantes': { maxMois: 36, marge: 0.0225 },
-  'Crédit Direct Aménagement': { maxMois: 60, marge: 0.025 },
-  'Crédit Direct Acquisition Véhicule Neuf': { maxMois: 84, marge: 0.02 },
-  'Crédit Direct Acquisition Véhicule Occasion': { maxMois: 60, marge: 0.02 },
-  'Crédit Direct Aménagement Hypothécaire (Durée ≤ 7 ans)': { maxMois: 84, marge: 0.02 },
-  'Crédit Direct Aménagement Hypothécaire (Durée > 7 ans et ≤ 12 ans)': { maxMois: 144, marge: 0.0225 },
-  'Crédit Direct Acquisition Logement (Durée ≤ 7 ans)': { maxMois: 84, marge: 0.02 },
-  'Crédit Direct Acquisition Logement (Durée > 7 ans et ≤ 15 ans)': { maxMois: 180, marge: 0.0225 },
-  'Crédit Direct Construction (Durée ≤ 7 ans)': { maxMois: 84, marge: 0.02 },
-  'Crédit Direct Construction (Durée > 7 ans et ≤ 15 ans)': { maxMois: 180, marge: 0.0225 },
-  'Crédit Direct Achat Terrain (Durée ≤ 7 ans)': { maxMois: 84, marge: 0.02 },
-  'Crédit Direct Achat Terrain (Durée > 7 ans et ≤ 15 ans)': { maxMois: 180, marge: 0.0225 }
-};
+// =====================================================
+// CLASSIFICATION DES PRODUITS
+// =====================================================
+//
+// Ces listes servent uniquement à classer les produits
+// dans les catégories PERSONNEL, AUTO et IMMO.
+//
+// Les marges et les durées proviennent de MySQL.
+// =====================================================
 
-const RACHAT_INTERNE: Record<string, CreditConfig> = {
-  'Crédit Direct Dépenses Courantes': { maxMois: 36, marge: 0.035 },
-  'Crédit Direct Aménagement': { maxMois: 60, marge: 0.0375 },
-  'Crédit Direct Acquisition Véhicule Neuf': { maxMois: 84, marge: 0.03 },
-  'Crédit Direct Acquisition Véhicule Occasion': { maxMois: 60, marge: 0.03 },
-  'Crédit Direct Aménagement Hypothécaire (Durée ≤ 7 ans)': { maxMois: 84, marge: 0.03 },
-  'Crédit Direct Aménagement Hypothécaire (Durée > 7 ans et ≤ 12 ans)': { maxMois: 144, marge: 0.0325 },
-  'Crédit Direct Acquisition Logement (Durée ≤ 7 ans)': { maxMois: 84, marge: 0.03 },
-  'Crédit Direct Acquisition Logement (Durée > 7 ans et ≤ 15 ans)': { maxMois: 180, marge: 0.0325 },
-  'Crédit Direct Construction (Durée ≤ 7 ans)': { maxMois: 84, marge: 0.03 },
-  'Crédit Direct Construction (Durée > 7 ans et ≤ 15 ans)': { maxMois: 180, marge: 0.0325 },
-  'Crédit Direct Achat Terrain (Durée ≤ 7 ans)': { maxMois: 84, marge: 0.03 },
-  'Crédit Direct Achat Terrain (Durée > 7 ans et ≤ 15 ans)': { maxMois: 180, marge: 0.0325 }
-};
+const PROJET_PRODUITS: Record<
+  Exclude<ProjetType, null>,
+  string[]
+> = {
 
-const RACHAT_EXTERNE: Record<string, CreditConfig> = {
-  'Crédit Direct Dépenses Courantes': { maxMois: 36, marge: 0.0225 },
-  'Crédit Direct Aménagement': { maxMois: 60, marge: 0.025 }
-};
-
-const PROJET_PRODUITS: Record<Exclude<ProjetType, null>, string[]> = {
   PERSONNEL: [
     'Crédit Direct Dépenses Courantes',
     'Crédit Direct Aménagement'
   ],
+
   AUTO: [
     'Crédit Direct Acquisition Véhicule Neuf',
     'Crédit Direct Acquisition Véhicule Occasion'
   ],
+
   IMMO: [
     'Crédit Direct Aménagement Hypothécaire (Durée ≤ 7 ans)',
     'Crédit Direct Aménagement Hypothécaire (Durée > 7 ans et ≤ 12 ans)',
@@ -80,36 +80,74 @@ const PROJET_PRODUITS: Record<Exclude<ProjetType, null>, string[]> = {
   ]
 };
 
-@Injectable({ providedIn: 'root' })
+type CreditGrid = Record<string, CreditConfig>;
+
+type CatalogueDynamique = Record<
+  ScenarioCode,
+  CreditGrid
+>;
+
+@Injectable({
+  providedIn: 'root'
+})
 export class WizardStateService {
 
-  /** TMM Excel = 7,49 % (décimal) */
-  readonly TMM = 0.0749;
+  // =====================================================
+  // TMM DYNAMIQUE
+  // =====================================================
 
-  private state: WizardState = {
-    salaireMensuelMoyen: null,
-    loyersDomicilies: 0,
-    retenuesSed: 0,
-    retenuesBna: 0,
-    capitalRestantDu: 0,
-    scenario: null,
-    projet: null,
-    typeCredit: null,
-    duree: 0,
-    montantDemande: 0,
-    step: 1
+  /**
+   * TMM exprimé en décimal.
+   *
+   * Exemple :
+   * 7.49 % -> 0.0749
+   *
+   * 0 avant le chargement des paramètres.
+   */
+  TMM = 0;
+
+  private catalogues: CatalogueDynamique = {
+    SANS_RACHAT: {},
+    RACHAT_INTERNE: {},
+    RACHAT_EXTERNE: {}
   };
 
-  get snapshot(): WizardState {
-    return { ...this.state };
+  private readonly parametrageChargeSubject =
+    new BehaviorSubject<boolean>(false);
+
+  readonly parametrageCharge$ =
+    this.parametrageChargeSubject.asObservable();
+
+  private readonly chargementSubject =
+    new BehaviorSubject<boolean>(false);
+
+  readonly chargement$ =
+    this.chargementSubject.asObservable();
+
+  private readonly erreurParametrageSubject =
+    new BehaviorSubject<string | null>(null);
+
+  readonly erreurParametrage$ =
+    this.erreurParametrageSubject.asObservable();
+
+  get parametrageCharge(): boolean {
+    return this.parametrageChargeSubject.value;
   }
 
-  patch(p: Partial<WizardState>): void {
-    this.state = { ...this.state, ...p };
+  get chargementParametrage(): boolean {
+    return this.chargementSubject.value;
   }
 
-  reset(): void {
-    this.state = {
+  get erreurParametrage(): string | null {
+    return this.erreurParametrageSubject.value;
+  }
+
+  // =====================================================
+  // ETAT INITIAL
+  // =====================================================
+
+  private initialState(): WizardState {
+    return {
       salaireMensuelMoyen: null,
       loyersDomicilies: 0,
       retenuesSed: 0,
@@ -124,14 +162,173 @@ export class WizardStateService {
     };
   }
 
-  /** Revenu net = salaire + 50 % loyers */
-  get revenuNet(): number {
-    return (this.state.salaireMensuelMoyen ?? 0) + (this.state.loyersDomicilies ?? 0) * 0.5;
+  private state: WizardState = this.initialState();
+
+  constructor(
+    private readonly parametrageService: ParametrageService
+  ) { }
+
+  // =====================================================
+  // CHARGEMENT DES PARAMETRES
+  // =====================================================
+
+  /**
+   * GET /api/parametrage
+   *
+   * Charge le TMM et les marges des trois scénarios.
+   */
+  chargerParametrage(): Observable<void> {
+
+    this.chargementSubject.next(true);
+    this.erreurParametrageSubject.next(null);
+
+    return this.parametrageService.getParametrage().pipe(
+
+      tap(response => {
+        this.appliquerParametrage(response);
+      }),
+
+      map(() => void 0),
+
+      finalize(() => {
+        this.chargementSubject.next(false);
+      })
+    );
   }
 
-  // ---------- Barèmes TxEnd / GF ----------
+  private appliquerParametrage(
+    response: ParametrageResponse
+  ): void {
 
-  /** Sans rachat & rachat interne — décimal */
+    if (
+      !response ||
+      typeof response.tmm !== 'number' ||
+      !Number.isFinite(response.tmm) ||
+      !Array.isArray(response.marges)
+    ) {
+      this.parametrageChargeSubject.next(false);
+
+      throw new Error(
+        'Réponse de paramétrage invalide'
+      );
+    }
+
+    const nouveauxCatalogues: CatalogueDynamique = {
+      SANS_RACHAT: {},
+      RACHAT_INTERNE: {},
+      RACHAT_EXTERNE: {}
+    };
+
+    for (const param of response.marges) {
+
+      if (!this.estScenarioValide(param.scenario)) {
+        continue;
+      }
+
+      if (
+        !param.typeCredit ||
+        !Number.isFinite(param.maxMois) ||
+        param.maxMois <= 0 ||
+        !Number.isFinite(param.marge)
+      ) {
+        continue;
+      }
+
+      nouveauxCatalogues[param.scenario][param.typeCredit] = {
+        maxMois: param.maxMois,
+        marge: param.marge / 100
+      };
+    }
+
+    this.TMM = response.tmm / 100;
+    this.catalogues = nouveauxCatalogues;
+
+    this.parametrageChargeSubject.next(true);
+    this.erreurParametrageSubject.next(null);
+
+    // Vérifier le produit sélectionné après actualisation.
+
+    if (
+      this.state.typeCredit &&
+      !this.getConfig(this.state.typeCredit)
+    ) {
+      this.patch({
+        typeCredit: null,
+        duree: 0,
+        montantDemande: 0
+      });
+    }
+
+    const config = this.getConfig(this.state.typeCredit);
+
+    if (
+      config &&
+      this.state.duree > config.maxMois
+    ) {
+      this.patch({
+        duree: 0
+      });
+    }
+  }
+
+  private estScenarioValide(
+    scenario: string
+  ): scenario is ScenarioCode {
+
+    return (
+      scenario === 'SANS_RACHAT' ||
+      scenario === 'RACHAT_INTERNE' ||
+      scenario === 'RACHAT_EXTERNE'
+    );
+  }
+
+  actualiserParametrage(): Observable<void> {
+    return this.chargerParametrage();
+  }
+
+  signalerErreurParametrage(
+    message: string
+  ): void {
+    this.erreurParametrageSubject.next(message);
+  }
+
+  // =====================================================
+  // GESTION DE L'ETAT
+  // =====================================================
+
+  get snapshot(): WizardState {
+    return { ...this.state };
+  }
+
+  patch(p: Partial<WizardState>): void {
+    this.state = {
+      ...this.state,
+      ...p
+    };
+  }
+
+  reset(): void {
+    this.state = this.initialState();
+  }
+
+  // =====================================================
+  // REVENU NET
+  // =====================================================
+
+  /** Revenu net = salaire + 50 % loyers */
+  get revenuNet(): number {
+
+    return (
+      (this.state.salaireMensuelMoyen ?? 0) +
+      (this.state.loyersDomicilies ?? 0) * 0.5
+    );
+  }
+
+  // =====================================================
+  // BAREMES TXEND / GF
+  // =====================================================
+
+  /** Sans rachat & rachat interne */
   getTauxEndettement(revenu: number): number {
     if (revenu < 1000) return 0.40;
     if (revenu < 2000) return 0.50;
@@ -149,7 +346,10 @@ export class WizardStateService {
   }
 
   /** Rachat externe — null si hors barème Excel */
-  getTauxEndettementExterne(revenu: number): number | null {
+  getTauxEndettementExterne(
+    revenu: number
+  ): number | null {
+
     if (revenu < 1500) return null;
     if (revenu < 2000) return 0.50;
     if (revenu < 3000) return 0.55;
@@ -157,7 +357,10 @@ export class WizardStateService {
     return 0.65;
   }
 
-  getGardeFouExterne(salaire: number): number | null {
+  getGardeFouExterne(
+    salaire: number
+  ): number | null {
+
     if (salaire < 1500) return null;
     if (salaire < 2000) return 0.60;
     if (salaire < 3000) return 0.65;
@@ -165,28 +368,69 @@ export class WizardStateService {
     return 0.75;
   }
 
-  // ---------- Produits / projets ----------
+  // =====================================================
+  // CATALOGUE DYNAMIQUE
+  // =====================================================
 
-  private grid(): Record<string, CreditConfig> {
-    if (this.state.scenario === 'RACHAT_INTERNE') return RACHAT_INTERNE;
-    if (this.state.scenario === 'RACHAT_EXTERNE') return RACHAT_EXTERNE;
-    return SANS_RACHAT;
+  private grid(): CreditGrid {
+
+    if (this.state.scenario === 'RACHAT_INTERNE') {
+      return this.catalogues.RACHAT_INTERNE;
+    }
+
+    if (this.state.scenario === 'RACHAT_EXTERNE') {
+      return this.catalogues.RACHAT_EXTERNE;
+    }
+
+    return this.catalogues.SANS_RACHAT;
   }
 
-  getProjets(): { key: ProjetType; title: string; icon: string }[] {
+  // =====================================================
+  // PROJETS DISPONIBLES
+  // =====================================================
+
+  getProjets(): {
+    key: ProjetType;
+    title: string;
+    icon: string;
+  }[] {
+
     if (this.state.scenario === 'RACHAT_EXTERNE') {
-      return [{ key: 'PERSONNEL', title: 'Crédit personnel', icon: 'person' }];
+      return [
+        {
+          key: 'PERSONNEL',
+          title: 'Crédit personnel',
+          icon: 'person'
+        }
+      ];
     }
+
     return [
-      { key: 'PERSONNEL', title: 'Crédit personnel', icon: 'person' },
-      { key: 'AUTO', title: 'Crédit auto', icon: 'directions_car' },
-      { key: 'IMMO', title: 'Crédit immobilier', icon: 'home' }
+      {
+        key: 'PERSONNEL',
+        title: 'Crédit personnel',
+        icon: 'person'
+      },
+      {
+        key: 'AUTO',
+        title: 'Crédit auto',
+        icon: 'directions_car'
+      },
+      {
+        key: 'IMMO',
+        title: 'Crédit immobilier',
+        icon: 'home'
+      }
     ];
   }
 
   getProjetsDisponibles() {
     return this.getProjets();
   }
+
+  // =====================================================
+  // PRODUITS DISPONIBLES
+  // =====================================================
 
   getProduits(): {
     nom: string;
@@ -195,21 +439,29 @@ export class WizardStateService {
     margePct: number;
     icon: string;
   }[] {
+
     const projet = this.state.projet;
-    if (!projet) return [];
+
+    if (!projet) {
+      return [];
+    }
 
     const g = this.grid();
+
     const icon =
-      projet === 'AUTO' ? 'directions_car' :
-        projet === 'IMMO' ? 'home' : 'person';
+      projet === 'AUTO'
+        ? 'directions_car'
+        : projet === 'IMMO'
+          ? 'home'
+          : 'person';
 
     return (PROJET_PRODUITS[projet] || [])
-      .filter(n => !!g[n])
-      .map(n => ({
-        nom: n,
-        maxMois: g[n].maxMois,
-        marge: g[n].marge,
-        margePct: g[n].marge * 100,
+      .filter(nom => !!g[nom])
+      .map(nom => ({
+        nom,
+        maxMois: g[nom].maxMois,
+        marge: g[nom].marge,
+        margePct: g[nom].marge * 100,
         icon
       }));
   }
@@ -218,29 +470,73 @@ export class WizardStateService {
     return this.getProduits();
   }
 
-  getConfig(typeCredit: string | null): CreditConfig | null {
-    if (!typeCredit) return null;
+  // =====================================================
+  // CONFIGURATION DU PRODUIT
+  // =====================================================
+
+  getConfig(
+    typeCredit: string | null
+  ): CreditConfig | null {
+
+    if (!typeCredit) {
+      return null;
+    }
+
     return this.grid()[typeCredit] ?? null;
   }
 
-  getConfigProduit(typeCredit: string | null): CreditConfig | null {
+  getConfigProduit(
+    typeCredit: string | null
+  ): CreditConfig | null {
+
     return this.getConfig(typeCredit);
   }
 
+  // =====================================================
+  // TAUX ANNUEL DYNAMIQUE
+  // =====================================================
+
   /**
-   * Taux annuel en % pour VA / VPM
-   * Exemple : TMM 7,49 + marge 3,5 → 10,99
+   * Taux annuel en pourcentage.
+   *
+   * Exemple :
+   * TMM = 7.49 %
+   * Marge = 3.50 %
+   * Taux annuel = 10.99 %
    */
-  getTauxAnnuelPct(typeCredit: string | null): number {
-    const c = this.getConfig(typeCredit);
-    if (!c) return 0;
-    return (this.TMM + c.marge) * 100;
+  getTauxAnnuelPct(
+    typeCredit: string | null
+  ): number {
+
+    if (!this.parametrageCharge) {
+      return 0;
+    }
+
+    const config = this.getConfig(typeCredit);
+
+    if (!config) {
+      return 0;
+    }
+
+    return (this.TMM + config.marge) * 100;
   }
 
+  // =====================================================
+  // URL API SIMULATION
+  // =====================================================
+
   apiUrl(): string {
+
     const base = 'http://localhost:8081/api/simulateur';
-    if (this.state.scenario === 'RACHAT_INTERNE') return `${base}/rachat-interne`;
-    if (this.state.scenario === 'RACHAT_EXTERNE') return `${base}/rachat-externe`;
+
+    if (this.state.scenario === 'RACHAT_INTERNE') {
+      return `${base}/rachat-interne`;
+    }
+
+    if (this.state.scenario === 'RACHAT_EXTERNE') {
+      return `${base}/rachat-externe`;
+    }
+
     return `${base}/sans-rachat`;
   }
 }

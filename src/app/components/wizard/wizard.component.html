@@ -1,9 +1,7 @@
+
 <div class="wiz">
 
-  <!-- ===================================================== -->
   <!-- PROGRESSION -->
-  <!-- ===================================================== -->
-
   <div class="wiz-progress">
 
     <div class="progress-step" [class.on]="step >= 1">
@@ -48,45 +46,62 @@
 
   </div>
 
+  <!-- ÉTAT DU PARAMÉTRAGE BANCAIRE -->
+  <div class="parametrage-status"
+       *ngIf="chargementParametrage">
+
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+
+    <div class="parametrage-status-content">
+      <mat-icon>sync</mat-icon>
+      <span>
+        Chargement des taux et des produits bancaires…
+      </span>
+    </div>
+
+  </div>
+
+  <div class="parametrage-error"
+       *ngIf="erreurParametrage">
+
+    <mat-icon>error_outline</mat-icon>
+
+    <div>
+      <strong>Paramétrage bancaire indisponible</strong>
+      <p>{{ erreurParametrage }}</p>
+    </div>
+
+    <button mat-stroked-button
+            type="button"
+            [disabled]="chargementParametrage"
+            (click)="chargerParametrage()">
+      Réessayer
+    </button>
+
+  </div>
 
   <div class="wiz-grid">
 
-    <!-- =================================================== -->
-    <!-- CONTENU PRINCIPAL -->
-    <!-- =================================================== -->
-
     <div class="wiz-main">
 
-
-      <!-- ================================================= -->
-      <!-- ÉTAPE 1 — REVENUS -->
-      <!-- ================================================= -->
+      <!-- ========================================= -->
+      <!-- ÉTAPE 1 : REVENUS -->
+      <!-- ========================================= -->
 
       <section *ngIf="step === 1"
                class="step-section">
 
         <div class="step-header">
-
-          <span class="step-number">
-            Étape 1
-          </span>
-
-          <h1>
-            Vos revenus
-          </h1>
-
+          <span class="step-number">Étape 1</span>
+          <h1>Vos revenus</h1>
           <p class="sub">
             Indiquez votre salaire moyen, vos loyers domiciliés
             et vos retenues.
           </p>
-
         </div>
-
 
         <form [formGroup]="formRevenus"
               (ngSubmit)="nextFromRevenus()">
-
-          <!-- SALAIRE -->
 
           <mat-form-field appearance="outline"
                           class="full">
@@ -100,9 +115,7 @@
                    min="1"
                    formControlName="salaireMensuelMoyen" />
 
-            <span matSuffix>
-              DT
-            </span>
+            <span matSuffix>DT</span>
 
             <mat-hint>
               Salaire net moyen estimé
@@ -113,9 +126,6 @@
             </mat-error>
 
           </mat-form-field>
-
-
-          <!-- LOYERS -->
 
           <mat-form-field appearance="outline"
                           class="full">
@@ -129,18 +139,14 @@
                    min="0"
                    formControlName="loyersDomicilies" />
 
-            <span matSuffix>
-              DT
-            </span>
+            <span matSuffix>DT</span>
 
             <mat-hint>
-              50 % des loyers seront pris en compte dans le revenu net.
+              50 % des loyers seront pris en compte
+              dans le revenu net.
             </mat-hint>
 
           </mat-form-field>
-
-
-          <!-- SED -->
 
           <mat-form-field appearance="outline"
                           class="full">
@@ -154,9 +160,7 @@
                    min="0"
                    formControlName="retenuesSed" />
 
-            <span matSuffix>
-              DT
-            </span>
+            <span matSuffix>DT</span>
 
             <mat-hint>
               Total des retenues affichées sur le SED.
@@ -164,33 +168,22 @@
 
           </mat-form-field>
 
-
-          <!-- RÉSUMÉ -->
-
           <div class="capacity-card">
 
             <div class="capacity-header">
-
               <div>
-
-                <span>
-                  Revenu mensuel net moyen
-                </span>
-
+                <span>Revenu mensuel net moyen</span>
                 <strong>
                   {{ revenuNet | number:'1.0-0' }} DT
                 </strong>
-
               </div>
 
               <mat-icon>
                 account_balance_wallet
               </mat-icon>
-
             </div>
 
           </div>
-
 
           <div class="actions">
 
@@ -213,11 +206,12 @@
 
       </section>
 
+      <!-- ========================================= -->
+      <!-- ÉTAPE 2 : SITUATION -->
+      <!-- ========================================= -->
 
-      <!-- ================================================= -->
-      <!-- ÉTAPE 2 — SITUATION -->
-      <!-- ================================================= -->
-      <section *ngIf="step === 2" class="step-section">
+      <section *ngIf="step === 2"
+               class="step-section">
 
         <div class="step-header">
           <span class="step-number">Étape 2</span>
@@ -227,8 +221,8 @@
           </p>
         </div>
 
-        <!-- Cartes de situation -->
         <div class="cards">
+
           <button type="button"
                   class="sit-card"
                   *ngFor="let s of situations"
@@ -245,59 +239,95 @@
               <span class="hint">{{ s.hint }}</span>
             </div>
 
-            <div class="check" *ngIf="scenario === s.key">
+            <div class="check"
+                 *ngIf="scenario === s.key">
               <mat-icon>check_circle</mat-icon>
             </div>
+
           </button>
+
         </div>
 
-        <!-- Champs liés au formRevenus (après choix du scénario) -->
-        <div [formGroup]="formRevenus" *ngIf="scenario">
+        <div [formGroup]="formRevenus"
+             *ngIf="scenario">
 
-          <!-- Retenues BNA : uniquement Sans rachat + Rachat interne -->
           <mat-form-field appearance="outline"
                           class="full"
-                          *ngIf="scenario === 'SANS_RACHAT' || scenario === 'RACHAT_INTERNE'">
-            <mat-label>Retenues crédits BNA (non rachetés)</mat-label>
+                          *ngIf="
+              scenario === 'SANS_RACHAT' ||
+              scenario === 'RACHAT_INTERNE'
+            ">
+
+            <mat-label>
+              Retenues crédits BNA (non rachetés)
+            </mat-label>
+
             <input matInput
                    type="number"
                    min="0"
                    formControlName="retenuesBna"
                    (input)="onRetenuesBnaChange()" />
+
             <span matSuffix>DT</span>
+
             <mat-hint>
-              Retenues mensuelles des crédits BNA conservés (hors rachat).
+              Retenues mensuelles des crédits BNA
+              conservés (hors rachat).
             </mat-hint>
+
           </mat-form-field>
 
-          <!-- Capital restant dû : Rachat interne + Rachat externe -->
           <div class="capacity-card"
-               *ngIf="scenario === 'RACHAT_INTERNE' || scenario === 'RACHAT_EXTERNE'">
+               *ngIf="
+              scenario === 'RACHAT_INTERNE' ||
+              scenario === 'RACHAT_EXTERNE'
+            ">
 
             <div class="capacity-header">
               <div>
                 <span>Capital restant dû à racheter</span>
-                <strong>{{ capitalRestantDu | number:'1.0-0' }} DT</strong>
+                <strong>
+                  {{ capitalRestantDu | number:'1.0-0' }} DT
+                </strong>
               </div>
+
               <mat-icon>account_balance</mat-icon>
             </div>
 
-            <mat-form-field appearance="outline" class="full">
-              <mat-label>Capital restant dû à racheter</mat-label>
+            <mat-form-field appearance="outline"
+                            class="full">
+
+              <mat-label>
+                Capital restant dû à racheter
+              </mat-label>
+
               <input matInput
                      type="number"
                      min="1"
                      formControlName="capitalRestantDu"
                      (input)="onCapitalChange()" />
+
               <span matSuffix>DT</span>
-              <mat-hint>Obligatoire pour un rachat interne ou externe.</mat-hint>
-              <mat-error>Indiquez un montant supérieur à 0.</mat-error>
+
+              <mat-hint>
+                Obligatoire pour un rachat interne ou externe.
+              </mat-hint>
+
+              <mat-error>
+                Indiquez un montant supérieur à 0.
+              </mat-error>
+
             </mat-form-field>
+
           </div>
+
         </div>
 
         <div class="actions">
-          <button mat-button type="button" (click)="back()">
+
+          <button mat-button
+                  type="button"
+                  (click)="back()">
             ← Retour
           </button>
 
@@ -308,33 +338,37 @@
                   (click)="nextFromSituation()">
             Continuer →
           </button>
+
         </div>
 
       </section>
 
-      <!-- ================================================= -->
-      <!-- ÉTAPE 3 — PROJET -->
-      <!-- ================================================= -->
+      <!-- ========================================= -->
+      <!-- ÉTAPE 3 : PROJET -->
+      <!-- ========================================= -->
 
       <section *ngIf="step === 3"
                class="step-section">
 
         <div class="step-header">
-
-          <span class="step-number">
-            Étape 3
-          </span>
-
-          <h1>
-            Votre projet
-          </h1>
-
+          <span class="step-number">Étape 3</span>
+          <h1>Votre projet</h1>
           <p class="sub">
-            Sélectionnez le type de projet que vous souhaitez financer.
+            Sélectionnez le type de projet que vous
+            souhaitez financer.
           </p>
-
         </div>
 
+        <div class="warning"
+             *ngIf="!peutUtiliserCatalogue">
+
+          <mat-icon>info</mat-icon>
+          <span>
+            Les projets seront disponibles après le
+            chargement du paramétrage bancaire.
+          </span>
+
+        </div>
 
         <div class="project-grid">
 
@@ -342,24 +376,16 @@
                   class="project-card"
                   *ngFor="let p of projetsDisponibles"
                   [class.selected]="projet === p.key"
+                  [disabled]="!peutUtiliserCatalogue"
                   (click)="selectProjet(p.key)">
 
-            <mat-icon>
-              {{ p.icon }}
-            </mat-icon>
-
-            <strong>
-              {{ p.title }}
-            </strong>
-
-            <span>
-              Projet de financement
-            </span>
+            <mat-icon>{{ p.icon }}</mat-icon>
+            <strong>{{ p.title }}</strong>
+            <span>Projet de financement</span>
 
           </button>
 
         </div>
-
 
         <div class="actions">
 
@@ -372,7 +398,7 @@
           <button mat-flat-button
                   class="btn-primary"
                   type="button"
-                  [disabled]="!projet"
+                  [disabled]="!projet || !peutUtiliserCatalogue"
                   (click)="nextFromProjet()">
             Continuer →
           </button>
@@ -381,30 +407,44 @@
 
       </section>
 
-
-      <!-- ================================================= -->
-      <!-- ÉTAPE 4 — PRODUIT -->
-      <!-- ================================================= -->
+      <!-- ========================================= -->
+      <!-- ÉTAPE 4 : PRODUIT -->
+      <!-- ========================================= -->
 
       <section *ngIf="step === 4"
                class="step-section">
 
         <div class="step-header">
-
-          <span class="step-number">
-            Étape 4
-          </span>
-
-          <h1>
-            Type de crédit
-          </h1>
-
+          <span class="step-number">Étape 4</span>
+          <h1>Type de crédit</h1>
           <p class="sub">
             Sélectionnez le produit correspondant à votre projet.
           </p>
+        </div>
+
+        <div class="warning"
+             *ngIf="!peutUtiliserCatalogue">
+
+          <mat-icon>info</mat-icon>
+          <span>
+            Chargement du catalogue des crédits nécessaire.
+          </span>
 
         </div>
 
+        <div class="warning"
+             *ngIf="
+            peutUtiliserCatalogue &&
+            produitsDisponibles.length === 0
+          ">
+
+          <mat-icon>info</mat-icon>
+          <span>
+            Aucun produit bancaire n'est configuré
+            pour ce projet et ce scénario.
+          </span>
+
+        </div>
 
         <div class="product-list">
 
@@ -412,62 +452,37 @@
                   class="product-card"
                   *ngFor="let p of produitsDisponibles"
                   [class.selected]="typeCredit === p.nom"
+                  [disabled]="!peutUtiliserCatalogue"
                   (click)="selectProduit(p.nom)">
 
             <div class="product-main">
 
               <div class="product-icon">
-
-                <mat-icon>
-                  {{ p.icon }}
-                </mat-icon>
-
+                <mat-icon>{{ p.icon }}</mat-icon>
               </div>
 
               <div>
-
-                <strong>
-                  {{ p.nom }}
-                </strong>
-
-                <span>
-                  Produit de financement
-                </span>
-
+                <strong>{{ p.nom }}</strong>
+                <span>Produit de financement</span>
               </div>
 
             </div>
-
 
             <div class="product-info">
 
               <div>
-
-                <small>
-                  Durée maximale
-                </small>
-
-                <b>
-                  {{ p.maxMois }} mois
-                </b>
-
+                <small>Durée maximale</small>
+                <b>{{ p.maxMois }} mois</b>
               </div>
 
-
               <div>
-
-                <small>
-                  Marge
-                </small>
-
+                <small>Marge</small>
                 <b>
-                  {{ (p.marge * 100) | number:'1.2-2' }} %
+                  {{ p.margePct | number:'1.2-2' }} %
                 </b>
-
               </div>
 
             </div>
-
 
             <mat-icon class="selected-icon"
                       *ngIf="typeCredit === p.nom">
@@ -478,7 +493,6 @@
 
         </div>
 
-
         <div class="actions">
 
           <button mat-button
@@ -490,7 +504,11 @@
           <button mat-flat-button
                   class="btn-primary"
                   type="button"
-                  [disabled]="!typeCredit"
+                  [disabled]="
+              !typeCredit ||
+              !configSelectionnee ||
+              !peutUtiliserCatalogue
+            "
                   (click)="nextFromProduit()">
             Continuer →
           </button>
@@ -499,48 +517,31 @@
 
       </section>
 
-
-      <!-- ================================================= -->
-      <!-- ÉTAPE 5 — SIMULATION -->
-      <!-- ================================================= -->
+      <!-- ========================================= -->
+      <!-- ÉTAPE 5 : SIMULATION -->
+      <!-- ========================================= -->
 
       <section *ngIf="step === 5"
                class="step-section">
 
         <div class="step-header">
-
-          <span class="step-number">
-            Étape 5
-          </span>
-
-          <h1>
-            Votre simulation
-          </h1>
-
+          <span class="step-number">Étape 5</span>
+          <h1>Votre simulation</h1>
           <p class="sub">
             Sélectionnez la durée. Le montant maximal du crédit
             est calculé automatiquement.
           </p>
-
         </div>
-
-
-        <!-- SYNTHÈSE FINANCIÈRE -->
 
         <div class="capacity-card">
 
           <div class="capacity-header">
 
             <div>
-
-              <span>
-                Revenu mensuel net moyen
-              </span>
-
+              <span>Revenu mensuel net moyen</span>
               <strong>
                 {{ revenuNet | number:'1.0-0' }} DT
               </strong>
-
             </div>
 
             <mat-icon>
@@ -549,84 +550,54 @@
 
           </div>
 
-
           <div class="capacity-details">
 
             <div>
-
-              <span>
-                Taux d'endettement
-              </span>
-
+              <span>Taux d'endettement</span>
               <b>
                 {{ tauxEndettementPct | number:'1.0-2' }} %
               </b>
-
             </div>
 
-
             <div>
-
-              <span>
-                Garde-fou
-              </span>
-
+              <span>Garde-fou</span>
               <b>
                 {{ gardeFouPct | number:'1.0-2' }} %
               </b>
-
             </div>
 
-
             <div>
-
-              <span>
-                Plafond d'endettement
-              </span>
-
+              <span>Plafond d'endettement</span>
               <b>
                 {{ plafondEndettement | number:'1.0-0' }} DT
               </b>
-
             </div>
 
-
             <div>
-
-              <span>
-                Reliquat capacité
-              </span>
-
+              <span>Reliquat capacité</span>
               <b>
                 {{ reliquatCapacite | number:'1.0-0' }} DT
               </b>
-
             </div>
 
           </div>
 
         </div>
 
-
-        <!-- DURÉE -->
-
         <mat-form-field appearance="outline"
                         class="full">
 
-          <mat-label>
-            Durée souhaitée
-          </mat-label>
+          <mat-label>Durée souhaitée</mat-label>
 
           <input matInput
                  type="number"
                  min="1"
                  [max]="configSelectionnee?.maxMois || 0"
+                 [disabled]="!peutUtiliserCatalogue"
                  [(ngModel)]="duree"
                  (ngModelChange)="onDureeChange($event)" />
 
-          <span matSuffix>
-            mois
-          </span>
+          <span matSuffix>mois</span>
 
           <mat-hint>
             Maximum :
@@ -635,63 +606,34 @@
 
         </mat-form-field>
 
-
-        <!-- TAUX -->
-
         <div class="rate-card">
 
           <div>
-
-            <span>
-              TMM
-            </span>
-
+            <span>TMM</span>
             <strong>
               {{ TMM | number:'1.2-2' }} %
             </strong>
-
           </div>
 
-
-          <div class="operator">
-            +
-          </div>
-
+          <div class="operator">+</div>
 
           <div>
-
-            <span>
-              Marge
-            </span>
-
+            <span>Marge</span>
             <strong>
-              {{ ((configSelectionnee?.marge || 0) * 100) | number:'1.2-2' }} %
+              {{ margePct | number:'1.2-2' }} %
             </strong>
-
           </div>
 
-
-          <div class="operator">
-            =
-          </div>
-
+          <div class="operator">=</div>
 
           <div class="total-rate">
-
-            <span>
-              Taux annuel
-            </span>
-
+            <span>Taux annuel</span>
             <strong>
               {{ tauxAnnuel | number:'1.2-2' }} %
             </strong>
-
           </div>
 
         </div>
-
-
-        <!-- MONTANT MAXIMAL -->
 
         <div class="max-credit-card"
              [class.loading]="calculEnCours">
@@ -700,53 +642,35 @@
             Montant maximal du crédit
           </span>
 
-
           <strong>
             {{ montantMaxCredit | number:'1.0-0' }} DT
           </strong>
 
-
           <small>
-            Calculé selon le barème, la capacité d'endettement,
-            la durée et le taux applicable.
+            Calculé selon le barème, la capacité
+            d'endettement, la durée et le taux applicable.
           </small>
 
         </div>
 
-
-        <!-- CAPACITÉ INSUFFISANTE -->
-
         <div class="warning"
              *ngIf="capaciteInsuffisante">
 
-          <mat-icon>
-            warning
-          </mat-icon>
-
-          <span>
-            {{ messageCalcul }}
-          </span>
+          <mat-icon>warning</mat-icon>
+          <span>{{ messageCalcul }}</span>
 
         </div>
-
-
-        <!-- MESSAGE CALCUL -->
 
         <div class="warning"
-             *ngIf="messageCalcul && !capaciteInsuffisante">
+             *ngIf="
+            messageCalcul &&
+            !capaciteInsuffisante
+          ">
 
-          <mat-icon>
-            info
-          </mat-icon>
-
-          <span>
-            {{ messageCalcul }}
-          </span>
+          <mat-icon>info</mat-icon>
+          <span>{{ messageCalcul }}</span>
 
         </div>
-
-
-        <!-- MONTANT DEMANDÉ -->
 
         <mat-form-field appearance="outline"
                         class="full">
@@ -759,12 +683,14 @@
                  type="number"
                  min="0"
                  [max]="montantMaxCredit"
-                 [(ngModel)]="montantDemande"
-                 (ngModelChange)="onMontantChange($event)" />
+                 [disabled]="
+                 !peutUtiliserCatalogue ||
+                 montantMaxCredit <= 0
+          "
+          [(ngModel)]="montantDemande"
+          (ngModelChange)="onMontantChange($event)" />
 
-          <span matSuffix>
-            DT
-          </span>
+          <span matSuffix>DT</span>
 
           <mat-hint *ngIf="montantMaxCredit > 0">
             Maximum autorisé :
@@ -773,29 +699,20 @@
 
         </mat-form-field>
 
-
-        <!-- DÉPASSEMENT -->
-
         <div class="warning"
              *ngIf="
              montantMaxCredit>
           0 &&
           montantDemande > montantMaxCredit
-          "
-          >
+          ">
 
-          <mat-icon>
-            warning
-          </mat-icon>
+          <mat-icon>warning</mat-icon>
 
           <span>
             Le montant demandé dépasse le montant maximal calculé.
           </span>
 
         </div>
-
-
-        <!-- ACTIONS -->
 
         <div class="actions">
 
@@ -805,21 +722,21 @@
             ← Retour
           </button>
 
-
           <button mat-flat-button
                   class="btn-primary"
                   type="button"
                   [disabled]="
                   calculEnCours ||
+                  !peutUtiliserCatalogue ||
                   !duree ||
                   duree < 1 ||
               duree > (configSelectionnee?.maxMois || 0) ||
               montantMaxCredit <= 0 ||
               montantDemande <= 0 ||
-              montantDemande > montantMaxCredit
+              montantDemande > montantMaxCredit ||
+              capaciteInsuffisante
             "
-            (click)="calculateResult()"
-          >
+            (click)="calculateResult()">
             Calculer →
           </button>
 
@@ -827,10 +744,9 @@
 
       </section>
 
-
-      <!-- ================================================= -->
-      <!-- ÉTAPE 6 — RÉSULTAT -->
-      <!-- ================================================= -->
+      <!-- ========================================= -->
+      <!-- ÉTAPE 6 : RÉSULTAT -->
+      <!-- ========================================= -->
 
       <section *ngIf="step === 6"
                class="step-section">
@@ -838,20 +754,12 @@
         <div class="result-header">
 
           <div class="success-icon">
-
-            <mat-icon>
-              check
-            </mat-icon>
-
+            <mat-icon>check</mat-icon>
           </div>
 
-          <span class="step-number">
-            Étape 6
-          </span>
+          <span class="step-number">Étape 6</span>
 
-          <h1>
-            Résultat de votre simulation
-          </h1>
+          <h1>Résultat de votre simulation</h1>
 
           <p class="sub">
             Voici les principales informations calculées.
@@ -859,133 +767,75 @@
 
         </div>
 
-
-        <!-- RÉSULTAT NORMAL -->
-
-        <ng-container>
+        <ng-container *ngIf="resultat">
 
           <div class="result-main">
 
-            <span>
-              Montant maximal du crédit
-            </span>
+            <span>Montant maximal du crédit</span>
 
             <strong>
               {{ montantMaxCredit | number:'1.0-0' }} DT
             </strong>
 
-            <small>
-              sur {{ duree }} mois
-            </small>
+            <small>sur {{ duree }} mois</small>
 
           </div>
-
 
           <div class="result-grid">
 
             <div class="result-card">
-
-              <span>
-                Montant demandé
-              </span>
-
+              <span>Montant demandé</span>
               <strong>
                 {{ montantDemande | number:'1.0-0' }} DT
               </strong>
-
             </div>
 
-
             <div class="result-card">
-
-              <span>
-                Mensualité demandée
-              </span>
-
+              <span>Mensualité demandée</span>
               <strong>
                 {{ mensualite | number:'1.0-0' }} DT
               </strong>
-
             </div>
 
-
             <div class="result-card">
-
-              <span>
-                Mensualité maximale
-              </span>
-
+              <span>Mensualité maximale</span>
               <strong>
                 {{ mensualiteMax | number:'1.0-0' }} DT
               </strong>
-
             </div>
 
-
             <div class="result-card">
-
-              <span>
-                Taux annuel
-              </span>
-
+              <span>Taux annuel</span>
               <strong>
                 {{ tauxAnnuel | number:'1.2-2' }} %
               </strong>
-
             </div>
 
-
             <div class="result-card">
-
-              <span>
-                Durée
-              </span>
-
-              <strong>
-                {{ duree }} mois
-              </strong>
-
+              <span>Durée</span>
+              <strong>{{ duree }} mois</strong>
             </div>
 
-
             <div class="result-card">
-
-              <span>
-                Revenu net moyen
-              </span>
-
+              <span>Revenu net moyen</span>
               <strong>
                 {{ revenuNet | number:'1.0-0' }} DT
               </strong>
-
             </div>
 
-
             <div class="result-card">
-
-              <span>
-                Plafond d'endettement
-              </span>
-
+              <span>Plafond d'endettement</span>
               <strong>
                 {{ plafondEndettement | number:'1.0-0' }} DT
               </strong>
-
             </div>
 
-
             <div class="result-card">
-
-              <span>
-                Reliquat capacité
-              </span>
-
+              <span>Reliquat capacité</span>
               <strong>
                 {{ reliquatCapacite | number:'1.0-0' }} DT
               </strong>
-
             </div>
-
 
             <div class="result-card"
                  *ngIf="
@@ -993,9 +843,7 @@
                 scenario === 'RACHAT_EXTERNE'
               ">
 
-              <span>
-                Capital restant dû
-              </span>
+              <span>Capital restant dû</span>
 
               <strong>
                 {{ capitalRestantDu | number:'1.0-0' }} DT
@@ -1003,16 +851,13 @@
 
             </div>
 
-
             <div class="result-card"
                  *ngIf="
                 scenario === 'RACHAT_INTERNE' ||
                 scenario === 'RACHAT_EXTERNE'
               ">
 
-              <span>
-                Reliquat crédit après rachat
-              </span>
+              <span>Reliquat crédit après rachat</span>
 
               <strong>
                 {{ reliquatCreditApresRachat | number:'1.0-0' }} DT
@@ -1020,69 +865,46 @@
 
             </div>
 
-
             <div class="result-card">
-
-              <span>
-                Total retenues
-              </span>
-
+              <span>Total retenues</span>
               <strong>
                 {{ totalRetenuesFinales | number:'1.0-0' }} DT
               </strong>
-
             </div>
 
-
             <div class="result-card">
-
-              <span>
-                Taux d'endettement final
-              </span>
-
+              <span>Taux d'endettement final</span>
               <strong>
                 {{ tauxEndettementFinal | number:'1.0-2' }} %
               </strong>
-
             </div>
 
           </div>
-
 
           <div class="result-alert success"
                *ngIf="
                montantDemande>
             0 &&
             montantDemande <= montantMaxCredit
-            "
-            >
+            ">
 
-            <mat-icon>
-              check_circle
-            </mat-icon>
+            <mat-icon>check_circle</mat-icon>
 
             <div>
-
-              <strong>
-                Simulation conforme
-              </strong>
-
+              <strong>Simulation conforme</strong>
               <p>
-                Le montant demandé respecte le montant maximal calculé.
+                Le montant demandé respecte le montant
+                maximal calculé.
               </p>
-
             </div>
 
           </div>
 
         </ng-container>
 
-
         <div class="result-info">
 
-          <mat-icon>
-            info
-          </mat-icon>
+          <mat-icon>info</mat-icon>
 
           <p>
             Cette simulation est indicative. Le résultat définitif
@@ -1092,28 +914,66 @@
 
         </div>
 
-
-        <div class="actions">
-          <button mat-button type="button" (click)="back()">← Modifier</button>
-
-          <div class="actions-right">
-            <button mat-stroked-button
-                    type="button"
-                    [disabled]="saving || saveOk || !resultat"
-                    (click)="enregistrer()">
-              <mat-icon>{{ saveOk ? 'check_circle' : 'bookmark' }}</mat-icon>
-              {{ saving ? 'Enregistrement…' : (saveOk ? 'Enregistré' : 'Enregistrer') }}
-            </button>
-
-
-
-            <button mat-flat-button class="btn-primary" type="button" (click)="nouvelleSimulation()">
-              Nouvelle simulation
-            </button>
+        <div class="dossier-cta">
+          <div>
+            <strong>Vous souhaitez poursuivre votre demande ?</strong>
+            <span>Ajoutez vos justificatifs et consultez leur préanalyse OCR.</span>
           </div>
+          <button mat-flat-button
+                  class="btn-primary"
+                  type="button"
+                  (click)="creerDossier()">
+            <mat-icon>folder_shared</mat-icon>
+            Constituer mon dossier
+          </button>
         </div>
 
-        <p class="save-msg" *ngIf="saveMessage" [class.ok]="saveOk" [class.ko]="!saveOk">
+        <div class="actions">
+
+          <button mat-button
+                  type="button"
+                  (click)="back()">
+            ← Modifier
+          </button>
+
+          <div class="actions-right">
+
+            <button mat-stroked-button
+                    type="button"
+                    [disabled]="
+                saving ||
+                saveOk ||
+                !resultat
+              "
+                    (click)="enregistrer()">
+
+              <mat-icon>
+                {{ saveOk ? 'check_circle' : 'bookmark' }}
+              </mat-icon>
+
+              {{
+                saving
+                  ? 'Enregistrement…'
+                  : (saveOk ? 'Enregistré' : 'Enregistrer')
+              }}
+
+            </button>
+
+            <button mat-flat-button
+                    class="btn-primary"
+                    type="button"
+                    (click)="nouvelleSimulation()">
+              Nouvelle simulation
+            </button>
+
+          </div>
+
+        </div>
+
+        <p class="save-msg"
+           *ngIf="saveMessage"
+           [class.ok]="saveOk"
+           [class.ko]="!saveOk">
           {{ saveMessage }}
         </p>
 
@@ -1121,158 +981,92 @@
 
     </div>
 
-
-    <!-- =================================================== -->
+    <!-- ========================================= -->
     <!-- RÉCAPITULATIF -->
-    <!-- =================================================== -->
+    <!-- ========================================= -->
 
     <aside class="wiz-recap">
 
       <div class="recap-title">
-
-        <mat-icon>
-          summarize
-        </mat-icon>
-
-        <h2>
-          Récapitulatif
-        </h2>
-
+        <mat-icon>summarize</mat-icon>
+        <h2>Récapitulatif</h2>
       </div>
 
-
       <div class="row">
-
-        <span>
-          Salaire moyen
-        </span>
-
+        <span>Salaire moyen</span>
         <b>
           {{ salaireMensuelMoyen | number:'1.0-0' }} DT
         </b>
-
       </div>
 
-
       <div class="row">
-
-        <span>
-          Loyers domiciliés
-        </span>
-
+        <span>Loyers domiciliés</span>
         <b>
           {{ loyersDomicilies | number:'1.0-0' }} DT
         </b>
-
       </div>
 
-
       <div class="row important">
-
-        <span>
-          Revenu net moyen
-        </span>
-
+        <span>Revenu net moyen</span>
         <b>
           {{ revenuNet | number:'1.0-0' }} DT
         </b>
-
       </div>
 
-
       <div class="row">
-
-        <span>
-          Taux d'endettement
-        </span>
-
+        <span>Taux d'endettement</span>
         <b>
           {{ tauxEndettementPct | number:'1.0-2' }} %
         </b>
-
       </div>
-
 
       <div class="row"
            *ngIf="step >= 3">
 
-        <span>
-          Situation
-        </span>
-
-        <b>
-          {{ scenarioLabel }}
-        </b>
+        <span>Situation</span>
+        <b>{{ scenarioLabel }}</b>
 
       </div>
-
 
       <div class="row"
            *ngIf="step >= 3 && projet">
 
-        <span>
-          Projet
-        </span>
-
-        <b>
-          {{ projetLabel }}
-        </b>
+        <span>Projet</span>
+        <b>{{ projetLabel }}</b>
 
       </div>
-
 
       <div class="row"
            *ngIf="step >= 4 && typeCredit">
 
-        <span>
-          Produit
-        </span>
-
-        <b>
-          {{ typeCredit }}
-        </b>
+        <span>Produit</span>
+        <b>{{ typeCredit }}</b>
 
       </div>
-
 
       <div class="row"
            *ngIf="step >= 5">
 
-        <span>
-          Taux annuel
-        </span>
-
+        <span>Taux annuel</span>
         <b>
           {{ tauxAnnuel | number:'1.2-2' }} %
         </b>
 
       </div>
 
-
       <div class="row"
            *ngIf="step >= 5">
 
-        <span>
-          Crédit maximal
-        </span>
-
+        <span>Crédit maximal</span>
         <b>
           {{ montantMaxCredit | number:'1.0-0' }} DT
         </b>
 
       </div>
 
-
       <div class="recap-step">
-
-        <span>
-          Progression
-        </span>
-
-        <strong>
-          {{ step }} / 6
-        </strong>
-
+        <span>Progression</span>
+        <strong>{{ step }} / 6</strong>
       </div>
 
     </aside>

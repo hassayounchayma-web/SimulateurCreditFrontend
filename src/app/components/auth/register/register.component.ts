@@ -74,14 +74,6 @@ export class RegisterComponent implements OnDestroy {
     this.errorMessage = '';
     this.successMessage = '';
 
-    console.log('📤 [Register] Envoi des données:', {
-      nom: this.nom,
-      prenom: this.prenom,
-      email: this.email,
-      telephone: this.telephone,
-      cin: this.cin
-    });
-
     this.authService.register({
       nom: this.nom,
       prenom: this.prenom,
@@ -91,7 +83,7 @@ export class RegisterComponent implements OnDestroy {
       password: this.password
     }).subscribe({
       next: (response: any) => {
-        console.log('✅ [Register] Réponse du backend:', response);
+        console.log('✅ [Register] Inscription réussie');
         this.handleSuccess();
       },
       error: (err: any) => {

@@ -33,7 +33,6 @@ export class AuthService {
       })
       .pipe(
         tap((response) => {
-          console.log('✅ [AuthService] Réponse login:', response);
 
           const token =
             response?.token ||
@@ -44,7 +43,7 @@ export class AuthService {
             localStorage.setItem(this.tokenKey, token);
             console.log('✅ Token sauvé sous', this.tokenKey);
           } else {
-            console.warn('⚠️ Pas de token dans la réponse', response);
+            console.warn('⚠️ Pas de token dans la réponse');
           }
 
           const userId =
